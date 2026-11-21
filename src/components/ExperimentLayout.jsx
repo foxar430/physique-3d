@@ -37,7 +37,7 @@ export default function ExperimentLayout({ meta, sim, scene, camera, controls, r
 
       <div className="exp-grid" ref={stageRef}>
         <section className="stage" aria-label="Scène 3D">
-          <Canvas camera={{ position: camera?.position ?? [0, 2, 6], fov: camera?.fov ?? 45 }} shadows dpr={[1, 2]}>
+          <Canvas key={String(camera?.position)} camera={{ position: camera?.position ?? [0, 2, 6], fov: camera?.fov ?? 45 }} shadows dpr={[1, 2]}>
             <Suspense fallback={null}>
               <color attach="background" args={['#14171c']} />
               <ambientLight intensity={0.5} />
