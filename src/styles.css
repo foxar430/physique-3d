@@ -116,6 +116,7 @@ button.link { border: 0; background: none; padding: 4px 0; color: var(--text-2);
 .speed span { color: var(--text-2); margin-right: 4px; }
 .speed button { padding: 3px 7px; font-size: 12.5px; }
 .speed button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.check { display: flex; gap: 6px; align-items: flex-start; font-size: 13px; margin: 8px 0; cursor: pointer; }
 .switch-btn { width: 100%; font-weight: 600; border-color: var(--accent); color: var(--accent); }
 .slider { margin: 12px 0; }
 .slider label { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 4px; }
