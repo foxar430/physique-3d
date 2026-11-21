@@ -81,7 +81,8 @@ function ticks(a, b, n) {
   const mag = Math.pow(10, Math.floor(Math.log10(step0)))
   const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= step0)
   const out = []
-  for (let v = Math.ceil(a / step - 1e-9) * step; v <= b + 1e-9; v += step) out.push(+v.toPrecision(10))
+  if (!(step > 0) || !isFinite(step)) return out
+  for (let v = Math.ceil(a / step - 1e-9) * step; v <= b + 1e-9 && out.length < 50; v += step) out.push(+v.toPrecision(10))
   return out
 }
 function decades(a, b) {
@@ -91,7 +92,7 @@ function decades(a, b) {
 }
 function fmt(v) {
   const a = Math.abs(v)
-  if (a === 0) return '0'
+  if (a < 1e-9) return '0'
   if (a >= 10000) return v.toExponential(0)
   if (a < 0.01) return v.toExponential(1)
   return String(+v.toPrecision(3))

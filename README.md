@@ -28,6 +28,20 @@ Puis ouvrir http://localhost:5180.
 - **Radioactivité** (`#/radioactivite`) : 512 noyaux, désintégrations aléatoires α, β⁻, β⁺, γ, compteur Geiger, écrans papier/aluminium/plomb, N(t), ln N(t), courbe d'Aston.
 - **Filtres RC** (`#/filtres`, Sc. Tech.) : passe-bas et passe-haut, oscillogrammes uE et uS, diagramme de Bode, fréquence de coupure.
 
+## Expériences de 3e année
+
+- **Projectile** (`#/projectile`) : chute libre et tir parabolique sur Terre, Mars ou la Lune, vecteurs vitesse, chronophotographie, portée et flèche.
+- **Particule dans un champ électrique** (`#/particule-e`) : canon à électrons, plaques de déviation, écran fluorescent, Y = L·D·U/(2·d·U₀).
+- **Particule dans un champ magnétique** (`#/particule-b`) : faisceau d'électrons dans des bobines de Helmholtz, spectrographe de masse (isotopes du néon), cyclotron.
+- **Interaction électrique** (`#/champ-e`) : lignes de champ (une charge, dipôle, condensateur plan), vecteur champ en un point, loi de Coulomb, pendule électrostatique.
+- **Interaction magnétique** (`#/magnetisme`) : spectre d'un aimant droit et d'un solénoïde, aiguilles aimantées, boussole et tan α = B/B_H.
+- **Gravitation** (`#/gravitation`) : satellites (ISS, GPS, géostationnaire, Lune), g(h), 3e loi de Kepler.
+- **Force de Laplace** (`#/laplace`) : rails de Laplace et roue de Barlow.
+- **Plan incliné** (`#/newton`) : cinématique, chronophotographie, 2e loi de Newton, théorème de l'énergie cinétique.
+- **Rotation** (`#/rotation`) : moment d'inertie J = J₀ + 2Md², ω(t).
+- **Lentilles minces** (`#/lentilles`) : banc d'optique, tracé des rayons, image sur l'écran (nette ou floue), loupe.
+- **Amplificateur opérationnel** (`#/aop`, Sc. Tech.) : inverseur, non inverseur, suiveur, sommateur, comparateur, saturation, oscilloscope.
+
 Les trois circuits électriques et le RC partagent la même scène 3D, `src/components/three/Circuit.jsx`.
 
 ## Documentation

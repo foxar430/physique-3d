@@ -68,7 +68,7 @@ export default function LiveChart({ sim, series, window: win = 10, yMin, yMax, y
         for (const p of visible) for (const v of p.v) { if (v < a) a = v; if (v > b) b = v }
         for (const g of gl) if (g.axis === 'y') { a = Math.min(a, g.value); b = Math.max(b, g.value) }
         if (!isFinite(a)) { a = -1; b = 1 }
-        if (a === b) { a -= 1; b += 1 }
+        if (b - a < 1e-9 * Math.max(1, Math.abs(a))) { a -= 1; b += 1 }
         const pad = (b - a) * 0.08
         lo = lo ?? a - pad
         hi = hi ?? b + pad
@@ -88,7 +88,8 @@ export default function LiveChart({ sim, series, window: win = 10, yMin, yMax, y
         const mag = Math.pow(10, Math.floor(Math.log10(step0)))
         const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= step0)
         const out = []
-        for (let v = Math.ceil(a / step) * step; v <= b + 1e-9; v += step) out.push(+v.toPrecision(10))
+        if (!(step > 0) || !isFinite(step)) return out
+        for (let v = Math.ceil(a / step) * step; v <= b + 1e-9 && out.length < 50; v += step) out.push(+v.toPrecision(10))
         return out
       }
       for (const v of ticks(lo, hi, 5)) {

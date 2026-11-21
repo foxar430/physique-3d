@@ -13,7 +13,11 @@ const speedLabel = (s) => (s >= 1 ? '×' + s : s >= 0.1 ? '×' + s : '÷' + Math
  */
 export default function ExperimentLayout({ meta, sim, scene, camera, controls, readouts, charts, course, onParamsReset, speeds = SPEEDS, speedNote, viewToggles = false }) {
   const stageRef = useRef(null)
-  const [view, setView] = useState({ tensions: true, flow: true })
+  const toggles =
+    viewToggles === true
+      ? [{ key: 'tensions', label: 'Flèches tension et intensité' }, { key: 'flow', label: 'Sens du courant (animé)' }]
+      : viewToggles || []
+  const [view, setView] = useState(() => Object.fromEntries([['tensions', true], ['flow', true], ...toggles.map((t) => [t.key, t.on ?? true])]))
   const toggleView = (k) => setView((v) => ({ ...v, [k]: !v[k] }))
   const fullscreen = () => {
     const el = stageRef.current
@@ -64,14 +68,13 @@ export default function ExperimentLayout({ meta, sim, scene, camera, controls, r
             </Suspense>
           </Canvas>
           <div className="hud">{readouts}</div>
-          {viewToggles && (
+          {toggles.length > 0 && (
             <div className="view-toggles">
-              <label>
-                <input type="checkbox" checked={view.tensions} onChange={() => toggleView('tensions')} /> Flèches tension et intensité
-              </label>
-              <label>
-                <input type="checkbox" checked={view.flow} onChange={() => toggleView('flow')} /> Sens du courant (animé)
-              </label>
+              {toggles.map((t) => (
+                <label key={t.key}>
+                  <input type="checkbox" checked={!!view[t.key]} onChange={() => toggleView(t.key)} /> {t.label}
+                </label>
+              ))}
             </div>
           )}
           <p className="hint">Glisse pour tourner · molette pour zoomer</p>
