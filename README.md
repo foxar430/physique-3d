@@ -2,6 +2,8 @@
 
 Ce site simule en 3D les expériences de physique du programme tunisien (lycée, bac). Le site est statique et gratuit, en français.
 
+**En ligne : https://foxar430.github.io/physique-3d/**
+
 ## Lancer en local
 
 ```bash
