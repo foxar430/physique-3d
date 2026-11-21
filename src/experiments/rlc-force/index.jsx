@@ -16,11 +16,13 @@ export const meta = {
 }
 
 const SPEEDS = [0.001, 0.002, 0.005, 0.01, 0.02]
+const uC = (s, p) => s.q / (p.C * 1e-6)
 const TOP = [
-  { type: 'R', label: 'R' },
-  { type: 'L', label: 'L' },
+  { type: 'R', label: 'R', name: <>u<sub>R</sub></>, u: (s, p) => p.R * s.i, ohms: (p) => p.R },
+  { type: 'L', label: 'L', name: <>u<sub>L</sub></>, u: (s, p) => u(s, p) - p.R * s.i - uC(s, p) },
 ]
-const RIGHT = { type: 'C', label: 'C' }
+const RIGHT = { type: 'C', label: 'C', name: <>u<sub>C</sub></>, u: uC }
+const SOURCE = { kind: 'gbf', name: 'u', u, display: (s, p) => p.N + ' Hz' }
 const METER = { label: 'i', value: (s) => (s.i * 1000).toFixed(1) + ' mA' }
 
 export default function RLCForcedExperiment() {
@@ -42,20 +44,23 @@ export default function RLCForcedExperiment() {
       sim={sim}
       speeds={SPEEDS}
       speedNote="Le GBF délivre des dizaines d’oscillations par seconde : la simulation est très ralentie."
-      camera={{ position: [0.6, 5.2, 5.6], target: [0.4, 0, 0] }}
-      scene={
+      camera={{ position: [0.5, 4.3, 4.7], target: [0.5, 0.15, -0.15] }}
+      viewToggles
+      scene={(view) => (
         <CircuitScene
           sim={sim}
-          source="gbf"
+          params={params}
+          view={view}
+          source={SOURCE}
+          amps={(s) => s.i}
           hasSwitch={false}
           top={TOP}
           right={RIGHT}
           meter={METER}
           current={(s, p) => s.i / (p.Um / p.R)}
           charge={(s, p) => (s.q / (p.C * 1e-6)) / Math.max(steady(p, N0(p)).Im / (2 * Math.PI * N0(p) * p.C * 1e-6), p.Um)}
-          sourceText={(s, p) => p.N + ' Hz · ' + u(s, p).toFixed(1) + ' V'}
         />
-      }
+      )}
       onParamsReset={() => setParams(DEFAULTS)}
       readouts={
         <>

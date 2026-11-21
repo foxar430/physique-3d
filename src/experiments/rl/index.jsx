@@ -16,8 +16,9 @@ export const meta = {
 
 const SPEED_NOTE = 'Le phénomène dure quelques millisecondes : la simulation est ralentie.'
 
-const TOP = [{ type: 'R', label: 'R' }]
-const RIGHT = { type: 'L', label: '(L, r)' }
+const TOP = [{ type: 'R', label: 'R', name: <>u<sub>R</sub></>, u: (s, p) => derived(s, p).uR, ohms: (p) => p.R }]
+const RIGHT = { type: 'L', label: '(L, r)', name: <>u<sub>B</sub></>, u: (s, p) => derived(s, p).uB }
+const SOURCE = { kind: 'battery', name: 'E', u: (s, p) => p.E, display: (s, p) => p.E.toFixed(1) + ' V' }
 const METER = { label: 'i', value: (s) => (s.i * 1000).toFixed(1) + ' mA' }
 
 export default function RLExperiment() {
@@ -40,17 +41,22 @@ export default function RLExperiment() {
       sim={sim}
       speeds={FAST_SPEEDS}
       speedNote={SPEED_NOTE}
-      camera={{ position: [0.6, 5.2, 5.6], target: [0.4, 0, 0] }}
-      scene={
+      camera={{ position: [0.5, 4.3, 4.7], target: [0.5, 0.15, -0.15] }}
+      viewToggles
+      scene={(view) => (
         <CircuitScene
           sim={sim}
+          params={params}
+          view={view}
+          source={SOURCE}
+          amps={(s) => s.i}
           onToggle={toggle}
           top={TOP}
           right={RIGHT}
           meter={METER}
           current={(s, p) => s.i / I0(p)}
         />
-      }
+      )}
       onParamsReset={() => setParams(DEFAULTS)}
       readouts={
         <>

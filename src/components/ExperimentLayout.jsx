@@ -1,6 +1,6 @@
-import { Suspense, useRef } from 'react'
+import { Suspense, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { OrbitControls, Environment, Lightformer } from '@react-three/drei'
 
 const SPEEDS = [0.1, 0.25, 0.5, 1, 2, 5]
 /** vitesses pour les phénomènes de quelques millisecondes (RL, RLC) */
@@ -11,8 +11,10 @@ const speedLabel = (s) => (s >= 1 ? '×' + s : s >= 0.1 ? '×' + s : '÷' + Math
  * Gabarit commun à toutes les expériences :
  * scène 3D + panneau de réglages + courbes + cours en bref.
  */
-export default function ExperimentLayout({ meta, sim, scene, camera, controls, readouts, charts, course, onParamsReset, speeds = SPEEDS, speedNote }) {
+export default function ExperimentLayout({ meta, sim, scene, camera, controls, readouts, charts, course, onParamsReset, speeds = SPEEDS, speedNote, viewToggles = false }) {
   const stageRef = useRef(null)
+  const [view, setView] = useState({ tensions: true, flow: true })
+  const toggleView = (k) => setView((v) => ({ ...v, [k]: !v[k] }))
   const fullscreen = () => {
     const el = stageRef.current
     if (!document.fullscreenElement) el?.requestFullscreen?.()
@@ -39,13 +41,39 @@ export default function ExperimentLayout({ meta, sim, scene, camera, controls, r
             <Suspense fallback={null}>
               <color attach="background" args={['#14171c']} />
               <ambientLight intensity={0.5} />
-              <directionalLight position={[4, 8, 5]} intensity={1.6} castShadow shadow-mapSize={[1024, 1024]} />
+              <directionalLight
+                position={[4, 8, 5]}
+                intensity={1.6}
+                castShadow
+                shadow-mapSize={[2048, 2048]}
+                shadow-camera-left={-7}
+                shadow-camera-right={7}
+                shadow-camera-top={5}
+                shadow-camera-bottom={-5}
+                shadow-bias={-0.0004}
+              />
               <directionalLight position={[-5, 3, -4]} intensity={0.4} />
-              {scene}
+              {/* éclairage studio procédural (reflets des métaux), sans fichier externe */}
+              <Environment resolution={128} frames={1}>
+                <Lightformer form="rect" intensity={2.2} position={[0, 6, 2]} rotation-x={Math.PI / 2} scale={[10, 6, 1]} />
+                <Lightformer form="rect" intensity={1.2} position={[-6, 2, 0]} rotation-y={Math.PI / 2} scale={[8, 3, 1]} />
+                <Lightformer form="rect" intensity={0.8} position={[6, 2, -2]} rotation-y={-Math.PI / 2} scale={[8, 3, 1]} color="#cfe3ff" />
+              </Environment>
+              {typeof scene === 'function' ? scene(view) : scene}
               <OrbitControls makeDefault target={camera?.target ?? [0, 0, 0]} enablePan={false} minDistance={2} maxDistance={20} />
             </Suspense>
           </Canvas>
           <div className="hud">{readouts}</div>
+          {viewToggles && (
+            <div className="view-toggles">
+              <label>
+                <input type="checkbox" checked={view.tensions} onChange={() => toggleView('tensions')} /> Flèches tension et intensité
+              </label>
+              <label>
+                <input type="checkbox" checked={view.flow} onChange={() => toggleView('flow')} /> Sens du courant (animé)
+              </label>
+            </div>
+          )}
           <p className="hint">Glisse pour tourner · molette pour zoomer</p>
         </section>
 

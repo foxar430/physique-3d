@@ -15,10 +15,12 @@ export const meta = {
 }
 
 const TOP = [
-  { type: 'R', label: 'R' },
-  { type: 'L', label: 'L' },
+  { type: 'R', label: 'R', name: <>u<sub>R</sub></>, u: (s, p) => p.R * s.i, ohms: (p) => p.R },
+  // uL = L·di/dt, déduite de la loi des mailles
+  { type: 'L', label: 'L', name: <>u<sub>L</sub></>, u: (s, p) => (s.k === 1 ? p.E : 0) - p.R * s.i - derived(s, p).uC },
 ]
-const RIGHT = { type: 'C', label: 'C' }
+const RIGHT = { type: 'C', label: 'C', name: <>u<sub>C</sub></>, u: (s, p) => derived(s, p).uC }
+const SOURCE = { kind: 'battery', name: 'E', u: (s, p) => p.E, display: (s, p) => p.E.toFixed(1) + ' V' }
 const METER = { label: 'uC', value: (s, p) => derived(s, p).uC.toFixed(2) + ' V' }
 
 export default function RLCFreeExperiment() {
@@ -49,10 +51,15 @@ export default function RLCFreeExperiment() {
       sim={sim}
       speeds={FAST_SPEEDS}
       speedNote="Une oscillation dure quelques millisecondes : la simulation est ralentie."
-      camera={{ position: [0.6, 5.2, 5.6], target: [0.4, 0, 0] }}
-      scene={
+      camera={{ position: [0.5, 4.3, 4.7], target: [0.5, 0.15, -0.15] }}
+      viewToggles
+      scene={(view) => (
         <CircuitScene
           sim={sim}
+          params={params}
+          view={view}
+          source={SOURCE}
+          amps={(s) => s.i}
           onToggle={toggle}
           top={TOP}
           right={RIGHT}
@@ -60,7 +67,7 @@ export default function RLCFreeExperiment() {
           current={(s, p) => s.i / Imax(p)}
           charge={(s, p) => derived(s, p).uC / p.E}
         />
-      }
+      )}
       onParamsReset={() => setParams(DEFAULTS)}
       readouts={
         <>

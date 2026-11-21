@@ -6,8 +6,9 @@ import { useSimulation, useSampled } from '../../lib/useSimulation.js'
 import { rcModel, DEFAULTS, tau, derived } from './model.js'
 import CircuitScene from '../../components/three/Circuit.jsx'
 
-const TOP = [{ type: 'R', label: 'R' }]
-const RIGHT = { type: 'C', label: 'C' }
+const TOP = [{ type: 'R', label: 'R', name: <>u<sub>R</sub></>, u: (s, p) => derived(s, p).uR, ohms: (p) => p.R * 1e3 }]
+const RIGHT = { type: 'C', label: 'C', name: <>u<sub>C</sub></>, u: (s) => s.uC }
+const SOURCE = { kind: 'battery', name: 'E', u: (s, p) => p.E, display: (s, p) => p.E.toFixed(1) + ' V' }
 const METER = { label: 'uC', value: (s) => s.uC.toFixed(2) + ' V' }
 
 export const meta = {
@@ -53,10 +54,15 @@ export default function RCExperiment() {
     <ExperimentLayout
       meta={meta}
       sim={sim}
-      camera={{ position: [0.6, 5.2, 5.6], target: [0.4, 0, 0] }}
-      scene={
+      camera={{ position: [0.5, 4.3, 4.7], target: [0.5, 0.15, -0.15] }}
+      viewToggles
+      scene={(view) => (
         <CircuitScene
           sim={sim}
+          params={params}
+          view={view}
+          source={SOURCE}
+          amps={(s, p) => derived(s, p).i}
           onToggle={toggle}
           top={TOP}
           right={RIGHT}
@@ -64,7 +70,7 @@ export default function RCExperiment() {
           current={(s, p) => derived(s, p).i / (p.E / (p.R * 1e3))}
           charge={(s, p) => s.uC / p.E}
         />
-      }
+      )}
       onParamsReset={() => setParams(DEFAULTS)}
       readouts={
         <>
