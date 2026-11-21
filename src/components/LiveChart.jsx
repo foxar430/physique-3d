@@ -11,11 +11,11 @@ import { useEffect, useRef } from 'react'
  *  yUnit      unité affichée sur l'axe y
  *  guides     (params) => [{ axis:'x'|'y', value, label }]  repères (E, τ, T0…)
  */
-export default function LiveChart({ sim, series, window: win = 10, yMin, yMax, yUnit = '', guides, title }) {
+export default function LiveChart({ sim, series, window: win = 10, yMin, yMax, yUnit = '', guides, title, timeScale = 1, timeLabel = 't (s)' }) {
   const canvasRef = useRef(null)
   const data = useRef([]) // [{t, v:[...]}]
   const propsRef = useRef({})
-  propsRef.current = { series, win, yMin, yMax, yUnit, guides }
+  propsRef.current = { series, win, yMin, yMax, yUnit, guides, timeScale, timeLabel }
 
   // collecte des points
   useEffect(() => {
@@ -41,7 +41,7 @@ export default function LiveChart({ sim, series, window: win = 10, yMin, yMax, y
     const ctx = cv.getContext('2d')
     let raf
     const draw = () => {
-      const { series, win, yMin, yMax, yUnit, guides } = propsRef.current
+      const { series, win, yMin, yMax, yUnit, guides, timeScale, timeLabel } = propsRef.current
       const dpr = window.devicePixelRatio || 1
       const W = cv.clientWidth
       const H = cv.clientHeight
@@ -96,15 +96,16 @@ export default function LiveChart({ sim, series, window: win = 10, yMin, yMax, y
         ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
         ctx.fillText(fmt(v), L - 6, y(v))
       }
-      for (const t of ticks(t0, t1, 6)) {
+      for (const td of ticks(t0 * timeScale, t1 * timeScale, 6)) {
+        const t = td / timeScale
         ctx.beginPath(); ctx.moveTo(x(t), T); ctx.lineTo(x(t), H - B); ctx.stroke()
         ctx.textAlign = 'center'; ctx.textBaseline = 'top'
-        ctx.fillText(fmt(t), x(t), H - B + 6)
+        ctx.fillText(fmt(td), x(t), H - B + 6)
       }
       ctx.textAlign = 'left'; ctx.textBaseline = 'top'
       ctx.fillText(yUnit, 4, 4)
       ctx.textAlign = 'right'
-      ctx.fillText('t (s)', W - R, H - 12)
+      ctx.fillText(timeLabel, W - R, H - 12)
 
       // repères
       ctx.setLineDash([5, 4])

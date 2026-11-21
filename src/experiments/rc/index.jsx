@@ -4,7 +4,11 @@ import Slider from '../../components/Slider.jsx'
 import LiveChart from '../../components/LiveChart.jsx'
 import { useSimulation, useSampled } from '../../lib/useSimulation.js'
 import { rcModel, DEFAULTS, tau, derived } from './model.js'
-import RCScene from './Scene.jsx'
+import CircuitScene from '../../components/three/Circuit.jsx'
+
+const TOP = [{ type: 'R', label: 'R' }]
+const RIGHT = { type: 'C', label: 'C' }
+const METER = { label: 'uC', value: (s) => s.uC.toFixed(2) + ' V' }
 
 export const meta = {
   id: 'rc',
@@ -50,7 +54,17 @@ export default function RCExperiment() {
       meta={meta}
       sim={sim}
       camera={{ position: [0.6, 5.2, 5.6], target: [0.4, 0, 0] }}
-      scene={<RCScene sim={sim} onToggle={toggle} />}
+      scene={
+        <CircuitScene
+          sim={sim}
+          onToggle={toggle}
+          top={TOP}
+          right={RIGHT}
+          meter={METER}
+          current={(s, p) => derived(s, p).i / (p.E / (p.R * 1e3))}
+          charge={(s, p) => s.uC / p.E}
+        />
+      }
       onParamsReset={() => setParams(DEFAULTS)}
       readouts={
         <>

@@ -8,9 +8,9 @@ export const EXPERIMENTS = [
   // 4e année
   { id: 'rc', level: '4e', title: 'Dipôle RC : charge et décharge', chapter: 'Systèmes électriques', icon: '⚡', load: lazy(() => import('./rc/index.jsx')) },
   { id: 'ressort', level: '4e', title: 'Pendule élastique : oscillations libres', chapter: 'Système mécanique', icon: '〰', load: lazy(() => import('./ressort/index.jsx')) },
-  { id: 'rl', level: '4e', title: 'Dipôle RL : établissement du courant', chapter: 'Systèmes électriques', icon: '🧲' },
-  { id: 'rlc-libre', level: '4e', title: 'RLC : oscillations libres amorties', chapter: 'Systèmes électriques', icon: '∿' },
-  { id: 'rlc-force', level: '4e', title: 'RLC forcé : résonance d’intensité', chapter: 'Systèmes électriques', icon: '📈' },
+  { id: 'rl', level: '4e', title: 'Dipôle RL : établissement du courant', chapter: 'Systèmes électriques', icon: '🧲', load: lazy(() => import('./rl/index.jsx')) },
+  { id: 'rlc-libre', level: '4e', title: 'RLC : oscillations libres amorties', chapter: 'Systèmes électriques', icon: '∿', load: lazy(() => import('./rlc-libre/index.jsx')) },
+  { id: 'rlc-force', level: '4e', title: 'RLC forcé : résonance d’intensité', chapter: 'Systèmes électriques', icon: '📈', load: lazy(() => import('./rlc-force/index.jsx')) },
   { id: 'ressort-force', level: '4e', title: 'Pendule élastique : résonance', chapter: 'Système mécanique', icon: '🎚' },
   { id: 'ondes', level: '4e', title: 'Ondes progressives (corde, cuve à ondes)', chapter: 'Ondes', icon: '🌊' },
   { id: 'diffraction', level: '4e', title: 'Diffraction de la lumière', chapter: 'Ondes', icon: '🔦' },

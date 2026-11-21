@@ -143,6 +143,15 @@ button.link { border: 0; background: none; padding: 4px 0; color: var(--text-2);
 .vm-screen small { color: #8fb79a; margin-right: 6px; font-weight: 400; }
 .legend3d { display: flex; flex-direction: column; font: 600 13px system-ui, sans-serif; white-space: nowrap; text-shadow: 0 1px 3px #000; pointer-events: none; }
 
+/* courbe de résonance (SVG) */
+.reso { width: 100%; height: 220px; display: block; }
+.reso .grid { stroke: var(--grid); stroke-width: 1; }
+.reso .tick { fill: var(--text-2); font: 11px system-ui, sans-serif; }
+.reso .guide { stroke: #e0a000; stroke-dasharray: 5 4; }
+.reso .guide-t { fill: #e0a000; }
+.vm-screen.gbf { background: #0e1626; color: #8fd0ff; }
+.legend-row { font-size: 12.5px; font-weight: 600; }
+
 @media (max-width: 900px) {
   .exp-grid { grid-template-columns: 1fr; grid-template-areas: 'stage' 'panel' 'charts'; }
   .stage { height: 360px; }

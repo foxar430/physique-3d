@@ -12,12 +12,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * L'état vit dans une ref (pas dans le state React) pour tenir 60 i/s.
  * Les abonnés (courbes, affichages) sont notifiés à chaque pas.
  */
-export function useSimulation(model, params) {
+export function useSimulation(model, params, options = {}) {
   const stateRef = useRef(model.init(params))
   const paramsRef = useRef(params)
   const listeners = useRef(new Set())
   const [running, setRunning] = useState(true)
-  const [speed, setSpeed] = useState(1)
+  const [speed, setSpeed] = useState(options.speed ?? 1)
   const runningRef = useRef(running)
   const speedRef = useRef(speed)
   runningRef.current = running

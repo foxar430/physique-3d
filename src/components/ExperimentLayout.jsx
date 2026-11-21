@@ -3,12 +3,15 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 
 const SPEEDS = [0.1, 0.25, 0.5, 1, 2, 5]
+/** vitesses pour les phénomènes de quelques millisecondes (RL, RLC) */
+export const FAST_SPEEDS = [0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
+const speedLabel = (s) => (s >= 1 ? '×' + s : s >= 0.1 ? '×' + s : '÷' + Math.round(1 / s))
 
 /**
  * Gabarit commun à toutes les expériences :
  * scène 3D + panneau de réglages + courbes + cours en bref.
  */
-export default function ExperimentLayout({ meta, sim, scene, camera, controls, readouts, charts, course, onParamsReset }) {
+export default function ExperimentLayout({ meta, sim, scene, camera, controls, readouts, charts, course, onParamsReset, speeds = SPEEDS, speedNote }) {
   const stageRef = useRef(null)
   const fullscreen = () => {
     const el = stageRef.current
@@ -56,12 +59,13 @@ export default function ExperimentLayout({ meta, sim, scene, camera, controls, r
           </div>
           <div className="speed" role="group" aria-label="Vitesse de simulation">
             <span>Vitesse</span>
-            {SPEEDS.map((s) => (
+            {speeds.map((s) => (
               <button key={s} className={s === sim.speed ? 'on' : ''} onClick={() => sim.setSpeed(s)}>
-                ×{s}
+                {speedLabel(s)}
               </button>
             ))}
           </div>
+          {speedNote && <p className="small muted">{speedNote}</p>}
           <h2>Paramètres</h2>
           {controls}
           {onParamsReset && (
