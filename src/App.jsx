@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react'
-import { EXPERIMENTS, LEVELS, SECTIONS, trimester } from './experiments/registry.js'
+import { EXPERIMENTS, LEVELS, SECTIONS, SUBJECTS, subjectOf, trimester } from './experiments/registry.js'
 
 function useHashRoute() {
   const get = () => window.location.hash.replace(/^#\/?/, '')
@@ -53,11 +53,13 @@ function useStored(key, init) {
 }
 
 function Home() {
+  const [subject, setSubject] = useStored('p3d-subject', 'physique')
   const [levelId, setLevel] = useStored('p3d-level', '4e')
   const [sec, setSec] = useStored('p3d-section', 'all')
-  const level = LEVELS.find((l) => l.id === levelId) ?? LEVELS[0]
+  const levels = LEVELS.filter((l) => EXPERIMENTS.some((e) => e.level === l.id && subjectOf(e) === subject))
+  const level = levels.find((l) => l.id === levelId) ?? levels[0]
   const section = level.sections.includes(sec) ? sec : 'all'
-  const list = EXPERIMENTS.filter((e) => e.level === level.id && (section === 'all' || e.sections?.includes(section)))
+  const list = EXPERIMENTS.filter((e) => subjectOf(e) === subject && e.level === level.id && (section === 'all' || e.sections?.includes(section)))
   const groups = [1, 2, 3].map((t) => ({ t, items: list.filter((e) => trimester(e, section === 'all' ? null : section) === t) }))
 
   return (
@@ -70,9 +72,16 @@ function Home() {
         </p>
       </header>
 
-      <nav className="filters" aria-label="Choix du niveau et de la section">
+      <nav className="filters" aria-label="Choix de la matière, du niveau et de la section">
+        <div className="tabs subject" role="tablist">
+          {SUBJECTS.map((sj) => (
+            <button key={sj.id} role="tab" aria-selected={sj.id === subject} className={sj.id === subject ? 'on' : ''} onClick={() => setSubject(sj.id)}>
+              {sj.label}
+            </button>
+          ))}
+        </div>
         <div className="tabs" role="tablist">
-          {LEVELS.map((lv) => (
+          {levels.map((lv) => (
             <button key={lv.id} role="tab" aria-selected={lv.id === level.id} className={lv.id === level.id ? 'on' : ''} onClick={() => setLevel(lv.id)}>
               {lv.label}
             </button>

@@ -44,6 +44,20 @@ export const EXPERIMENTS = [
   { id: 'refraction', level: '2e', sections: ['S'], tri: 3, title: 'Réflexion, réfraction, réflexion totale', chapter: 'Optique', icon: '💎', load: lazy(() => import('./refraction/index.jsx')) },
 ]
 
+// ---------- Chimie (TP du bac) ----------
+const CHIMIE = [
+  { id: 'tp-cinetique', subject: 'chimie', level: '4e', sections: ['M', 'SE'], tri: 1, title: 'TP : cinétique, oxydation des ions iodure', chapter: 'Cinétique chimique', icon: '⏱', load: lazy(() => import('../chimie/tp/cinetique.jsx')) },
+  { id: 'tp-esterification', subject: 'chimie', level: '4e', sections: ['M', 'SE', 'ST'], tri: 1, title: 'TP : estérification, équilibre chimique', chapter: 'Équilibre chimique', icon: '🍐', load: lazy(() => import('../chimie/tp/esterification.jsx')) },
+  { id: 'tp-dosage', subject: 'chimie', level: '4e', sections: ['M', 'SE', 'ST'], tri: 2, title: 'TP : dosage acide-base (pH-mètre, indicateurs)', chapter: 'Réactions acide-base', icon: '🧪', load: lazy(() => import('../chimie/tp/dosage.jsx')) },
+]
+EXPERIMENTS.push(...CHIMIE)
+
+export const SUBJECTS = [
+  { id: 'physique', label: 'Physique' },
+  { id: 'chimie', label: 'Chimie' },
+]
+export const subjectOf = (e) => e.subject ?? 'physique'
+
 export const LEVELS = [
   { id: '4e', label: '4e année · Bac', sections: ['M', 'SE', 'ST'] },
   { id: '3e', label: '3e année', sections: ['M', 'SE', 'ST'] },
