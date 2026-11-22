@@ -16,8 +16,8 @@ const CB = 0.1 // mol/L
 const VA = 0.02 // L
 
 const ACIDS = {
-  HCl: { name: 'acide chlorhydrique', key: 'HCl', ind: 'bbt', indName: 'BBT', strong: true },
-  AcOH: { name: 'acide éthanoïque', key: 'AcOH', ind: 'pp', indName: 'phénolphtaléine', strong: false },
+  HCl: { name: 'acide chlorhydrique', key: 'HCl', ind: 'bbt', indName: 'BBT', strong: true, formula: 'HCl (H₃O⁺ + Cl⁻)' },
+  AcOH: { name: 'acide éthanoïque', key: 'AcOH', ind: 'pp', indName: 'phénolphtaléine', strong: false, formula: 'CH₃COOH' },
 }
 
 function makeCfg(acid, Ca) {
@@ -25,23 +25,26 @@ function makeCfg(acid, Ca) {
   return {
     burette: true,
     phmeter: true,
+    phmeterPos: [1.6, -1.3],
+    shelf: { x: -3.0, z: -1.35, w: 2.9 },
+    rack: { x: 3.1, z: 1.05, w: 1.8 },
     slots: [
-      { id: 'b1', kind: 'bench', x: -3.4, z: 0.55 },
-      { id: 'b2', kind: 'bench', x: -2.5, z: 0.55 },
-      { id: 'b3', kind: 'bench', x: 1.3, z: 0.6 },
-      { id: 'b4', kind: 'bench', x: 2.2, z: 0.6 },
+      { id: 'b1', kind: 'bench', x: -3.7, z: 0.8 },
+      { id: 'b2', kind: 'bench', x: -2.7, z: 0.8 },
+      { id: 'b3', kind: 'bench', x: -1.15, z: 0.9 },
+      { id: 'b4', kind: 'bench', x: 1.0, z: 0.75 },
       { id: 'stir', kind: 'stirrer', x: BURETTE_X, z: BURETTE_Z },
     ],
     items: [
-      { id: 'acide', kind: 'bottle', label: `${A.name[0].toUpperCase() + A.name.slice(1)} (Ca = ?)`, home: [-3.6, -0.9], reagent: { V: 1, T: 20, n: { [A.key]: Ca } } },
-      { id: 'soude', kind: 'bottle', label: 'Soude 0,100 mol/L', home: [-2.9, -0.9], reagent: { V: 1, T: 20, n: { NaOH: CB } } },
-      { id: 'eau', kind: 'bottle', label: 'Eau distillée', home: [-2.2, -0.9], reagent: { V: 1, T: 20, n: {} } },
-      { id: 'bbt', kind: 'dropper', label: 'BBT', home: [3.3, -0.4], reagent: { V: 0.02, T: 20, n: { BBT: 1 } }, species: 'BBT' },
-      { id: 'pp', kind: 'dropper', label: 'Phénolphtaléine', home: [3.7, 0.1], reagent: { V: 0.02, T: 20, n: { PP: 1 } }, species: 'PP' },
-      { id: 'pip', kind: 'pipette', label: 'Pipette jaugée 20 mL', cap: VA, home: [3.0, 0.75] },
-      { id: 'epr', kind: 'eprouvette', label: 'Éprouvette 30 mL', cap: 0.03, home: [3.7, 0.8] },
+      { id: 'acide', kind: 'bottle', label: A.name[0].toUpperCase() + A.name.slice(1), home: [-4.0, -1.3], reagent: { V: 1, T: 20, n: { [A.key]: Ca } }, tag: { name: A.name[0].toUpperCase() + A.name.slice(1), formula: A.formula, conc: 'Ca = ? (inconnue)', color: '#d6402f' } },
+      { id: 'soude', kind: 'bottle', label: 'Soude', home: [-3.0, -1.3], reagent: { V: 1, T: 20, n: { NaOH: CB } }, tag: { name: 'Soude (hydroxyde de sodium)', formula: 'Na⁺ + OH⁻', conc: '0,100 mol/L', color: '#2f6db3' } },
+      { id: 'eau', kind: 'bottle', label: 'Eau distillée', home: [-2.0, -1.3], reagent: { V: 1, T: 20, n: {} }, tag: { name: 'Eau distillée', formula: 'H₂O', color: '#4dabf7' } },
+      { id: 'bbt', kind: 'dropper', label: 'BBT', home: [3.2, -1.3], reagent: { V: 0.02, T: 20, n: { BBT: 1 } }, species: 'BBT', tag: { name: 'Bleu de bromothymol', formula: 'BBT', color: '#2f9e44' } },
+      { id: 'pp', kind: 'dropper', label: 'Phénolphtaléine', home: [3.85, -1.3], reagent: { V: 0.02, T: 20, n: { PP: 1 } }, species: 'PP', tag: { name: 'Phénolphtaléine', formula: 'indicateur', color: '#d6336c' } },
+      { id: 'pip', kind: 'pipette', label: 'Pipette jaugée 20 mL', cap: VA, home: [2.6, 1.05] },
+      { id: 'epr', kind: 'eprouvette', label: 'Éprouvette 30 mL', cap: 0.03, home: [3.5, 1.05] },
       { id: 'becher', kind: 'beaker', label: 'Bécher 150 mL', cap: 0.15, slot: 'b3' },
-      { id: 'probe', kind: 'probe', label: 'Sonde pH', home: [2.75, -0.55] },
+      { id: 'probe', kind: 'probe', label: 'Sonde du pH-mètre', home: [2.4, -1.25] },
     ],
   }
 }

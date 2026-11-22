@@ -83,40 +83,55 @@ export function grab(lab, id) {
   lab.version++
 }
 
-/** déplacement de l'objet tenu (coordonnées de la paillasse) */
-export function moveHeld(lab, x, z) {
+/** l'objet tenu `o` peut-il agir sur `t` (verser dedans, s'y remplir) ? */
+export function canTarget(o, t) {
+  if (!o || !t || t.id === o.id || t.held) return false
+  const emptyTool = (o.kind === 'pipette' || o.kind === 'eprouvette') && o.sol.V < 1e-7
+  if (emptyTool) {
+    // l'éprouvette se remplit au flacon ; la pipette au flacon ou dans un récipient (prélèvement),
+    // mais pas dans le récipient où elle vient d'être vidée
+    if (t.kind === 'bottle') return true
+    return o.kind === 'pipette' && isContainer(t) && t.id !== o.justEmptied
+  }
+  return isContainer(t)
+}
+export const canFillBurette = (lab, o) => !!lab.burette && o?.kind === 'bottle'
+
+/**
+ * Déplacement de l'objet tenu.
+ *  x, z : point de la paillasse sous la souris ; ray : rayon de la souris (pour viser l'objet à l'écran) ;
+ *  client : position de la souris en pixels (verrouillage de la cible pendant qu'on verse).
+ */
+export function moveHeld(lab, x, z, ray, client) {
   const o = lab.items[lab.held]
   if (!o) return
   o.pos = [x, 0.9, z]
-  lab.hover = findTarget(lab, o, x, z)
+  // cible verrouillée : on la garde tant que la souris ne s'éloigne pas (le zoom ne la fait pas perdre)
+  if (lab.lock && client && Math.hypot(client.x - lab.lock.x, client.y - lab.lock.y) < 110) return
+  const best = findTarget(lab, o, x, z, ray)
+  if (best !== lab.hover) o.pourT = 0
+  lab.hover = best
+  lab.lock = best && client ? { id: best, x: client.x, y: client.y } : null
 }
 
-/** cible sous l'objet tenu : récipient, flacon, burette */
-function findTarget(lab, o, x, z) {
-  const emptyTool = (o.kind === 'pipette' || o.kind === 'eprouvette') && o.sol.V < 1e-7
-  const accepts = (t) => {
-    if (t.id === o.id || t.held) return false
-    if (emptyTool) {
-      // l'éprouvette se remplit au flacon ; la pipette au flacon ou dans un récipient (prélèvement),
-      // mais pas dans le récipient où elle vient d'être vidée
-      if (t.kind === 'bottle') return true
-      return o.kind === 'pipette' && isContainer(t) && t.id !== o.justEmptied
-    }
-    return isContainer(t)
-  }
+/** cible visée : le récipient (ou flacon, ou burette) le plus proche du rayon de la souris */
+function findTarget(lab, o, x, z, ray) {
+  const top = (t) => [t.pos[0], (lab.topOf ? lab.topOf(t) : 0.6) * 0.75, t.pos[2]]
+  const dist = (p) => (ray ? ray.distanceToPoint({ x: p[0], y: p[1], z: p[2] }) : Math.hypot(p[0] - x, p[2] - z))
   let best = null
-  let bd = 0.55
+  let bd = 0.6
   for (const t of Object.values(lab.items)) {
-    if (!accepts(t)) continue
-    const d = Math.hypot(t.pos[0] - x, t.pos[2] - z)
+    if (!canTarget(o, t)) continue
+    const d = dist(top(t))
     if (d < bd) {
       bd = d
       best = t.id
     }
   }
-  if (lab.burette && o.kind === 'bottle') {
+  if (canFillBurette(lab, o)) {
     const b = lab.buretteTop ?? [0, 0]
-    if (Math.hypot(b[0] - x, b[1] - z) < 0.45) best = 'burette'
+    const d = dist([b[0], 2.3, b[1]])
+    if (d < Math.max(bd, 0.6)) best = 'burette'
   }
   return best
 }
@@ -128,8 +143,10 @@ export function release(lab) {
   if (!o) return
   o.held = false
   o.justEmptied = null
+  o.pourT = 0
   const tgt = lab.hover
   lab.hover = null
+  lab.lock = null
   if (isContainer(o)) {
     // poser sur l'emplacement libre le plus proche
     let best = null
@@ -157,6 +174,12 @@ export function release(lab) {
 
 /* ----------------------------- transvasements ----------------------------- */
 
+/** débit progressif : on commence doucement (≈ 2 mL/s), puis le débit monte en 1,5 s */
+const ramp = (o, dt) => {
+  o.pourT = (o.pourT ?? 0) + dt
+  return 0.3 + 0.7 * Math.min(1, o.pourT / 1.5)
+}
+
 /** appelé à chaque image pendant qu'on tient un objet au-dessus d'une cible */
 export function pourStep(lab, dt) {
   const o = lab.items[lab.held]
@@ -174,6 +197,7 @@ export function pourStep(lab, dt) {
     const v = Math.min(rate * dt, want - (o.filling ?? 0))
     if (t.kind !== 'bottle' && t.sol.V < v) return say(lab, `${t.label} ne contient plus assez de liquide.`, 'warn')
     o.filling = (o.filling ?? 0) + v
+    lab.version++
     if (o.filling >= want - 1e-9) {
       const src = t.kind === 'bottle' ? { ...clone(t.sol), V: t.sol.V } : t.sol
       const { out, rest } = take(t.kind === 'bottle' ? scaleTo(src, want) : src, want)
@@ -191,7 +215,7 @@ export function pourStep(lab, dt) {
     const b = lab.burette
     lab.pour = { from: o.id, to: 'burette', mode: 'pour' }
     if (b.filledWith && b.filledWith !== o.id) return say(lab, 'La burette contient déjà une autre solution : vide-la et rince-la d’abord.', 'warn')
-    const v = Math.min(POUR_RATE * dt, b.cap + 0.002 - b.sol.V)
+    const v = Math.min(POUR_RATE * ramp(o, dt) * dt, b.cap + 0.002 - b.sol.V)
     if (v <= 0) return
     b.sol = mix(b.sol, scaleTo(o.sol, v))
     b.filledWith = o.id
@@ -214,7 +238,7 @@ export function pourStep(lab, dt) {
   // versement : flacon, éprouvette, pipette (pleine), récipient
   const src = o.kind === 'bottle' ? null : o.sol
   if (src && src.V < 1e-7) return
-  const rate = o.kind === 'pipette' ? PIPETTE_RATE : POUR_RATE
+  const rate = o.kind === 'pipette' ? PIPETTE_RATE : POUR_RATE * ramp(o, dt)
   let v = rate * dt
   if (src) v = Math.min(v, src.V)
   if (t.sol.V + v > t.cap) {

@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Html, RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { color } from './chem.js'
-import { grab, moveHeld, release, isContainer, readPH, buretteReading } from './lab.js'
+import { grab, moveHeld, release, isContainer, readPH, buretteReading, canTarget, canFillBurette } from './lab.js'
 import { steel } from '../components/three/Lab.jsx'
 
 /* Dimensions de la verrerie (unités de scène ≈ 10 cm) */
@@ -11,8 +11,8 @@ const GEO = {
   beaker: { r: 0.3, h: 0.72 },
   erlen: { r: 0.32, h: 0.7, neck: 0.11 },
   tube: { r: 0.08, h: 0.75 },
-  bottle: { r: 0.2, h: 0.62 },
-  dropper: { r: 0.11, h: 0.32 },
+  bottle: { r: 0.24, h: 0.72 },
+  dropper: { r: 0.12, h: 0.34 },
   eprouvette: { r: 0.1, h: 1.0 },
   pipette: { r: 0.03, h: 1.25 },
 }
@@ -117,10 +117,58 @@ function Tube({ item }) {
   )
 }
 
+/** texture d'étiquette : nom complet, formule, concentration, bandeau de couleur */
+function useLabelTexture(tag, small) {
+  return useMemo(() => {
+    const W = 512
+    const H = small ? 360 : 420
+    const c = document.createElement('canvas')
+    c.width = W
+    c.height = H
+    const g = c.getContext('2d')
+    g.fillStyle = '#fbf8f0'
+    g.fillRect(0, 0, W, H)
+    g.fillStyle = tag?.color ?? '#3e6fb8'
+    g.fillRect(0, 0, W, 46)
+    g.fillStyle = '#1b1d21'
+    g.textAlign = 'center'
+    const wrap = (text, y, size, weight = 700) => {
+      g.font = `${weight} ${size}px system-ui, sans-serif`
+      const words = String(text).split(' ')
+      const lines = []
+      let line = ''
+      for (const w of words) {
+        const test = line ? line + ' ' + w : w
+        if (g.measureText(test).width > W - 40 && line) {
+          lines.push(line)
+          line = w
+        } else line = test
+      }
+      lines.push(line)
+      lines.forEach((l, i) => g.fillText(l, W / 2, y + i * size * 1.1))
+      return y + lines.length * size * 1.1
+    }
+    let y = 100
+    y = wrap(tag?.name ?? '', y, small ? 50 : 54)
+    if (tag?.formula) y = wrap(tag.formula, y + 8, small ? 44 : 50, 600)
+    if (tag?.conc) {
+      g.fillStyle = '#c0392b'
+      wrap(tag.conc, y + 10, small ? 46 : 52, 800)
+    }
+    const t = new THREE.CanvasTexture(c)
+    t.colorSpace = THREE.SRGBColorSpace
+    t.anisotropy = 8
+    return t
+  }, [tag?.name, tag?.formula, tag?.conc, tag?.color, small])
+}
+
 function Bottle({ item }) {
-  const { r, h } = item.kind === 'dropper' ? GEO.dropper : GEO.bottle
+  const dropper = item.kind === 'dropper'
+  const { r, h } = dropper ? GEO.dropper : GEO.bottle
   const c = color(item.sol)
   const brown = item.brown
+  const tex = useLabelTexture(item.tag ?? { name: item.label }, dropper)
+  const lh = h * (dropper ? 0.7 : 0.62)
   return (
     <group>
       <mesh position={[0, h / 2, 0]} castShadow>
@@ -135,18 +183,18 @@ function Bottle({ item }) {
       )}
       <mesh position={[0, h + 0.05, 0]}>
         <cylinderGeometry args={[r * 0.45, r * 0.5, 0.1, 20]} />
-        <meshStandardMaterial color={item.kind === 'dropper' ? '#1b1d21' : '#2f6db3'} roughness={0.5} />
+        <meshStandardMaterial color={dropper ? '#1b1d21' : item.tag?.color ?? '#2f6db3'} roughness={0.5} />
       </mesh>
-      {item.kind === 'dropper' && (
+      {dropper && (
         <mesh position={[0, h + 0.16, 0]}>
           <sphereGeometry args={[0.05, 16, 12]} />
           <meshStandardMaterial color="#1b1d21" />
         </mesh>
       )}
-      {/* étiquette */}
-      <mesh position={[0, h * 0.5, r + 0.003]}>
-        <planeGeometry args={[r * 1.4, h * 0.42]} />
-        <meshStandardMaterial color="#f7f3e8" />
+      {/* étiquette imprimée, courbée sur la face avant */}
+      <mesh position={[0, h * 0.5, 0]}>
+        <cylinderGeometry args={[r + 0.004, r + 0.004, lh, 32, 1, true, -1.15, 2.3]} />
+        <meshStandardMaterial map={tex} roughness={0.7} />
       </mesh>
     </group>
   )
@@ -235,6 +283,14 @@ function Probe({ item }) {
   )
 }
 
+/** position de l'étiquette : devant le pied des flacons (étagère), au-dessus des autres objets */
+const labelPos = (item) =>
+  item.labelUp
+    ? [0, (GEO[item.kind]?.h ?? 0.6) + 0.32, 0]
+    : item.kind === 'bottle' || item.kind === 'dropper' || item.kind === 'pipette' || item.kind === 'eprouvette' || item.kind === 'probe'
+      ? [0, 0.02, (GEO[item.kind]?.r ?? 0.2) + 0.24]
+      : [0, (GEO[item.kind]?.h ?? 0.6) + 0.28, 0]
+
 const VIEW = { beaker: Beaker, erlen: Erlen, tube: Tube, bottle: Bottle, dropper: Bottle, eprouvette: Eprouvette, pipette: Pipette, probe: Probe }
 
 /** objet déplaçable : suit la souris quand on le tient, s'incline pour verser */
@@ -284,8 +340,21 @@ function Item({ lab, item, onChange }) {
     g.current.position.z += (z - g.current.position.z) * k
     g.current.rotation.z += (-tilt - g.current.rotation.z) * k
     if (label.current) {
-      const v = o.kind === 'bottle' || o.kind === 'dropper' || o.kind === 'probe' ? '' : o.sol.V > 1e-7 ? ` · ${(o.sol.V * 1000).toFixed(1)} mL` : ''
-      label.current.textContent = o.label + v
+      const vol = o.sol.V > 1e-7 ? `${(o.sol.V * 1000).toFixed(1)} mL` : ''
+      const isTarget = lab.hover === o.id
+      const hovered = lab.hoverItem === o.id && !lab.held
+      const tool = o.kind === 'bottle' || o.kind === 'dropper' || o.kind === 'probe'
+      let txt = ''
+      if (o.held) txt = o.label + (vol && !tool ? ' · ' + vol : '')
+      else if (isTarget) txt = (lab.pour?.mode === 'fill' ? '↑ remplir depuis : ' : '↓ verser dans : ') + o.label + (vol && !tool ? ' · ' + vol : '')
+      else if (hovered) txt = (o.tag ? o.tag.name + (o.tag.conc ? ' · ' + o.tag.conc : '') : o.label) + (vol && !tool ? ' · ' + vol : '')
+      else if (lab.held) txt = '' // pendant un geste : seulement l'objet tenu et sa cible
+      else if (isContainer(o)) txt = (o.short ?? o.label) + (vol ? (o.short ? '\n' : ' · ') + vol : '')
+      else txt = (o.short ?? o.label) + (o.tag?.conc ? '\n' + o.tag.conc : '')
+      label.current.textContent = txt
+      label.current.style.display = txt ? '' : 'none'
+      const chip = !o.held && !isTarget && !hovered
+      label.current.className = 'lbl tiny chem-lbl' + (o.held ? ' held' : isTarget ? ' target' : chip ? ' chip' : '')
     }
   })
 
@@ -300,7 +369,7 @@ function Item({ lab, item, onChange }) {
   const move = (e) => {
     if (lab.held !== item.id) return
     e.stopPropagation()
-    if (e.ray.intersectPlane(plane, hit)) moveHeld(lab, THREE.MathUtils.clamp(hit.x, -4.2, 4.2), THREE.MathUtils.clamp(hit.z, -1.5, 1.6))
+    if (e.ray.intersectPlane(plane, hit)) moveHeld(lab, THREE.MathUtils.clamp(hit.x, -4.2, 4.2), THREE.MathUtils.clamp(hit.z, -1.5, 1.6), e.ray, { x: e.clientX, y: e.clientY })
   }
   const up = (e) => {
     if (lab.held !== item.id) return
@@ -317,8 +386,15 @@ function Item({ lab, item, onChange }) {
       onPointerDown={down}
       onPointerMove={move}
       onPointerUp={up}
-      onPointerOver={() => (document.body.style.cursor = 'grab')}
-      onPointerOut={() => (document.body.style.cursor = '')}
+      onPointerOver={(e) => {
+        e.stopPropagation()
+        document.body.style.cursor = 'grab'
+        lab.hoverItem = item.id
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = ''
+        if (lab.hoverItem === item.id) lab.hoverItem = null
+      }}
     >
       <View item={item} />
       {/* zone de saisie un peu plus large que l'objet */}
@@ -326,10 +402,33 @@ function Item({ lab, item, onChange }) {
         <cylinderGeometry args={[0.32, 0.32, 0.9, 12]} />
         <meshBasicMaterial />
       </mesh>
-      <Html position={[0, (GEO[item.kind]?.h ?? 0.6) + 0.28, 0]} center zIndexRange={[10, 0]}>
-        <span ref={label} className={'lbl tiny chem-lbl' + (item.held ? ' held' : '')}>{item.label}</span>
+      <Html position={labelPos(item)} center zIndexRange={[10, 0]}>
+        <span ref={label} className="lbl tiny chem-lbl" />
       </Html>
     </group>
+  )
+}
+
+/** anneau posé au sol sous un objet (surbrillance de cible) */
+function TargetRing({ lab, item }) {
+  const ref = useRef()
+  const r = (GEO[item.kind]?.r ?? 0.3) + 0.1
+  useFrame(() => {
+    const heldObj = lab.held ? lab.items[lab.held] : null
+    const cand = heldObj && canTarget(heldObj, item)
+    ref.current.visible = !!cand
+    if (!cand) return
+    const active = lab.hover === item.id
+    ref.current.material.color.set(active ? '#30d158' : '#ffd23f')
+    ref.current.material.opacity = active ? 0.95 : 0.4 + 0.25 * Math.sin(performance.now() / 180)
+    ref.current.position.set(item.pos[0], (item.pos[1] ?? 0) + 0.012, item.pos[2])
+    ref.current.scale.setScalar(active ? 1.15 : 1)
+  })
+  return (
+    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+      <ringGeometry args={[r, r + 0.06, 48]} />
+      <meshBasicMaterial transparent depthWrite={false} toneMapped={false} />
+    </mesh>
   )
 }
 
@@ -370,6 +469,7 @@ function Burette({ lab, onChange }) {
   const mat = useRef()
   const reading = useRef()
   const tap = useRef()
+  const glow = useRef()
   const H = 1.5
   const y0 = 0.95 // bas de la colonne graduée
   useFrame(() => {
@@ -381,6 +481,14 @@ function Burette({ lab, onChange }) {
     const c = color(b.sol)
     mat.current.color.setRGB(...c.rgb)
     tap.current.rotation.x = b.open ? Math.PI / 2 : 0
+    const heldObj = lab.held ? lab.items[lab.held] : null
+    const cand = canFillBurette(lab, heldObj)
+    glow.current.visible = cand
+    if (cand) {
+      const active = lab.hover === 'burette'
+      glow.current.material.color.set(active ? '#30d158' : '#ffd23f')
+      glow.current.material.opacity = active ? 0.95 : 0.4 + 0.25 * Math.sin(performance.now() / 180)
+    }
     if (reading.current) reading.current.textContent = b.sol.V < 1e-7 ? 'vide' : b.zeroed ? 'lu : ' + buretteReading(lab).toFixed(2) + ' mL' : (b.sol.V * 1000).toFixed(1) + ' mL dedans'
   })
   const setOpen = (v) => (e) => {
@@ -401,6 +509,11 @@ function Burette({ lab, onChange }) {
       <mesh position={[-0.28, 2.1, -0.05]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.02, 0.02, 0.55, 8]} />
         <meshStandardMaterial {...steel} />
+      </mesh>
+      {/* repère : on peut remplir la burette par le haut */}
+      <mesh ref={glow} position={[0, y0 + H + 0.2, 0]} rotation={[Math.PI / 2, 0, 0]} visible={false}>
+        <torusGeometry args={[0.13, 0.025, 8, 32]} />
+        <meshBasicMaterial transparent toneMapped={false} />
       </mesh>
       {/* tube gradué */}
       <mesh position={[0, y0 + H / 2 + 0.05, 0]}>
@@ -519,14 +632,14 @@ function Bath({ slot, ice, temp }) {
   )
 }
 
-function PHMeter({ lab }) {
+function PHMeter({ lab, pos = [2.2, -0.95] }) {
   const screen = useRef()
   useFrame(() => {
     const p = readPH(lab)
     if (screen.current) screen.current.textContent = p == null ? '- - -' : p.toFixed(2)
   })
   return (
-    <group position={[2.2, 0, -0.95]}>
+    <group position={[pos[0], 0, pos[1]]}>
       <RoundedBox args={[0.8, 0.35, 0.55]} radius={0.05} position={[0, 0.18, 0]} castShadow>
         <meshStandardMaterial color="#d6dade" roughness={0.5} />
       </RoundedBox>
@@ -543,6 +656,13 @@ export default function Bench({ lab, cfg, onChange }) {
   const ices = lab.slots.filter((s) => s.kind === 'ice')
   const baths = lab.slots.filter((s) => s.kind === 'bath')
   lab.buretteTop = [BURETTE_X, BURETTE_Z]
+  lab.topOf = topOf
+  for (const kinds of [['bottle'], ['dropper'], ['pipette', 'eprouvette']]) {
+    Object.values(lab.items)
+      .filter((o) => kinds.includes(o.kind))
+      .sort((a, b) => a.home[0] - b.home[0])
+      .forEach((o, i) => (o.labelUp = i % 2 === 1))
+  }
   return (
     <group>
       {/* paillasse carrelée */}
@@ -554,6 +674,32 @@ export default function Bench({ lab, cfg, onChange }) {
         <boxGeometry args={[9.5, 1.0, 0.1]} />
         <meshStandardMaterial color="#3b4a63" />
       </mesh>
+      {/* étagère des réactifs (au fond) */}
+      {cfg.shelf && (
+        <group position={[cfg.shelf.x, 0, cfg.shelf.z]}>
+          <RoundedBox args={[cfg.shelf.w, 0.06, 0.62]} radius={0.02} position={[0, 0.03, 0]} receiveShadow>
+            <meshStandardMaterial color="#8d6b4a" roughness={0.7} />
+          </RoundedBox>
+          <mesh position={[0, 0.55, -0.32]}>
+            <boxGeometry args={[cfg.shelf.w, 1.1, 0.04]} />
+            <meshStandardMaterial color="#a58260" roughness={0.75} />
+          </mesh>
+          <Html position={[0, 1.22, -0.3]} center zIndexRange={[10, 0]}>
+            <span className="lbl tiny">Réactifs</span>
+          </Html>
+        </group>
+      )}
+      {/* porte-outils (pipettes, éprouvettes, compte-gouttes) */}
+      {cfg.rack && (
+        <group position={[cfg.rack.x, 0, cfg.rack.z]}>
+          <RoundedBox args={[cfg.rack.w, 0.05, 0.55]} radius={0.02} position={[0, 0.025, 0]} receiveShadow>
+            <meshStandardMaterial color="#3b4a63" roughness={0.6} />
+          </RoundedBox>
+          <Html position={[0, -0.02, 0.4]} center zIndexRange={[10, 0]}>
+            <span className="lbl tiny">Verrerie de mesure</span>
+          </Html>
+        </group>
+      )}
       {/* emplacements de pose */}
       {lab.slots
         .filter((s) => s.kind === 'bench')
@@ -569,9 +715,12 @@ export default function Bench({ lab, cfg, onChange }) {
       {stir && <Stirrer lab={lab} slot={stir} onChange={onChange} />}
       {ices.map((s) => <Bath key={s.id} slot={s} ice />)}
       {baths.map((s) => <Bath key={s.id} slot={s} temp={s.T ?? lab.bathT ?? 60} />)}
-      {cfg.phmeter && <PHMeter lab={lab} />}
+      {cfg.phmeter && <PHMeter lab={lab} pos={cfg.phmeterPos} />}
       {Object.values(lab.items).map((it) => (
         <Item key={it.id} lab={lab} item={it} onChange={onChange} />
+      ))}
+      {Object.values(lab.items).map((it) => (
+        <TargetRing key={'r' + it.id} lab={lab} item={it} />
       ))}
       <Stream lab={lab} />
     </group>

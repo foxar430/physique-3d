@@ -22,36 +22,38 @@ const CB = 1.0
 const RHO_ACIDE = 1.05 / 60 * 1000 // mol/L (acide pur ≈ 17,5 mol/L)
 const RHO_ETHANOL = 0.79 / 46 * 1000 // mol/L (éthanol pur ≈ 17,2 mol/L)
 
-const tubeSlots = [0, 1, 2, 3].map((k) => ({ id: 'bm' + k, kind: 'bath', x: 1.6 + (k % 2) * 0.55, z: 0.25 + Math.floor(k / 2) * 0.55, T: 80, r: 0.24, label: k === 0 ? 'bain-marie 80 °C' : '' }))
+const tubeSlots = [0, 1, 2, 3].map((k) => ({ id: 'bm' + k, kind: 'bath', x: 0.9 + (k % 2) * 0.6, z: 0.35 + Math.floor(k / 2) * 0.6, T: 80, r: 0.26, label: k === 0 ? 'bain-marie 80 °C' : ' ' }))
 
 const cfg = {
   burette: true,
   phmeter: false,
+  shelf: { x: -3.0, z: -1.35, w: 2.9 },
+  rack: { x: 3.1, z: 1.05, w: 1.8 },
   slots: [
-    { id: 'p1', kind: 'bench', x: -3.4, z: 0.6 },
-    { id: 'p2', kind: 'bench', x: -2.6, z: 0.75 },
-    { id: 't0', kind: 'bench', x: -1.6, z: 0.95 },
-    { id: 't1', kind: 'bench', x: -1.2, z: 1.15 },
-    { id: 't2', kind: 'bench', x: -0.8, z: 1.25 },
-    { id: 't3', kind: 'bench', x: -0.4, z: 1.3 },
+    { id: 'p1', kind: 'bench', x: -3.8, z: 0.85 },
+    { id: 'p2', kind: 'bench', x: -2.85, z: 0.85 },
+    { id: 't0', kind: 'bench', x: -2.0, z: 1.15 },
+    { id: 't1', kind: 'bench', x: -1.55, z: 1.15 },
+    { id: 't2', kind: 'bench', x: -1.1, z: 1.15 },
+    { id: 't3', kind: 'bench', x: -0.65, z: 1.15 },
     ...tubeSlots,
-    { id: 'ice', kind: 'ice', x: 3.0, z: 0.9, r: 0.38 },
+    { id: 'ice', kind: 'ice', x: 2.25, z: -0.05, r: 0.4 },
     { id: 'stir', kind: 'stirrer', x: BURETTE_X, z: BURETTE_Z },
   ],
   items: [
-    { id: 'acide', kind: 'bottle', label: 'Acide éthanoïque pur', home: [-3.7, -0.9], reagent: { V: 1, T: 20, n: { AcOH: RHO_ACIDE } } },
-    { id: 'alcool', kind: 'bottle', label: 'Éthanol pur', home: [-3.0, -0.9], reagent: { V: 1, T: 20, n: { EtOH: RHO_ETHANOL } } },
-    { id: 'soude', kind: 'bottle', label: 'Soude 1,00 mol/L', home: [-2.3, -0.9], reagent: { V: 1, T: 20, n: { NaOH: CB } } },
-    { id: 'h2so4', kind: 'dropper', label: 'H₂SO₄ (catalyseur)', home: [3.5, -0.6], reagent: { V: 0.02, T: 20, n: { H2SO4: 0.04 } }, species: 'H2SO4' },
-    { id: 'pp', kind: 'dropper', label: 'Phénolphtaléine', home: [3.9, -0.1], reagent: { V: 0.02, T: 20, n: { PP: 1 } }, species: 'PP' },
-    { id: 'eprA', kind: 'eprouvette', label: 'Éprouvette (5,7 mL)', cap: 0.01, target: 0.0057, home: [2.9, -0.6] },
-    { id: 'eprE', kind: 'eprouvette', label: 'Éprouvette (5,8 mL)', cap: 0.01, target: 0.0058, home: [2.6, -0.05] },
-    { id: 'mix', kind: 'erlen', label: 'Erlen du mélange', cap: 0.05, slot: 'p1' },
-    { id: 'dos', kind: 'erlen', label: 'Erlen de dosage', cap: 0.1, slot: 'p2' },
-    { id: 'T1', kind: 'tube', label: 'Tube 1', cap: 0.0029, slot: 't0' },
-    { id: 'T2', kind: 'tube', label: 'Tube 2', cap: 0.0029, slot: 't1' },
-    { id: 'T3', kind: 'tube', label: 'Tube 3', cap: 0.0029, slot: 't2' },
-    { id: 'T4', kind: 'tube', label: 'Tube 4', cap: 0.0029, slot: 't3' },
+    { id: 'acide', kind: 'bottle', label: 'Acide éthanoïque', home: [-4.0, -1.3], reagent: { V: 1, T: 20, n: { AcOH: RHO_ACIDE } }, tag: { name: 'Acide éthanoïque pur', formula: 'CH₃COOH', conc: '≈ 17,5 mol/L', color: '#d6402f' } },
+    { id: 'alcool', kind: 'bottle', label: 'Éthanol', home: [-3.0, -1.3], reagent: { V: 1, T: 20, n: { EtOH: RHO_ETHANOL } }, tag: { name: 'Éthanol pur', formula: 'C₂H₅OH', conc: '≈ 17,2 mol/L', color: '#e8590c' } },
+    { id: 'soude', kind: 'bottle', label: 'Soude', home: [-2.0, -1.3], reagent: { V: 1, T: 20, n: { NaOH: CB } }, tag: { name: 'Soude (hydroxyde de sodium)', formula: 'Na⁺ + OH⁻', conc: '1,00 mol/L', color: '#2f6db3' } },
+    { id: 'h2so4', kind: 'dropper', label: 'Acide sulfurique', home: [3.2, -1.3], reagent: { V: 0.02, T: 20, n: { H2SO4: 0.04 } }, species: 'H2SO4', tag: { name: 'Acide sulfurique', formula: 'H₂SO₄ (catalyseur)', color: '#c92a2a' } },
+    { id: 'pp', kind: 'dropper', label: 'Phénolphtaléine', home: [3.85, -1.3], reagent: { V: 0.02, T: 20, n: { PP: 1 } }, species: 'PP', tag: { name: 'Phénolphtaléine', formula: 'indicateur', color: '#d6336c' } },
+    { id: 'eprA', kind: 'eprouvette', label: 'Éprouvette (5,7 mL d’acide)', short: 'Éprouvette\n5,7 mL', cap: 0.01, target: 0.0057, home: [2.6, 1.05] },
+    { id: 'eprE', kind: 'eprouvette', label: 'Éprouvette (5,8 mL d’éthanol)', short: 'Éprouvette\n5,8 mL', cap: 0.01, target: 0.0058, home: [3.5, 1.05] },
+    { id: 'mix', kind: 'erlen', label: 'Erlen du mélange', short: 'Mélange', cap: 0.05, slot: 'p1' },
+    { id: 'dos', kind: 'erlen', label: 'Erlen de dosage', short: 'Dosage', cap: 0.1, slot: 'p2' },
+    { id: 'T1', kind: 'tube', label: 'Tube 1', short: 'T1', cap: 0.0029, slot: 't0' },
+    { id: 'T2', kind: 'tube', label: 'Tube 2', short: 'T2', cap: 0.0029, slot: 't1' },
+    { id: 'T3', kind: 'tube', label: 'Tube 3', short: 'T3', cap: 0.0029, slot: 't2' },
+    { id: 'T4', kind: 'tube', label: 'Tube 4', short: 'T4', cap: 0.0029, slot: 't3' },
   ],
 }
 
