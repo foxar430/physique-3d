@@ -16,7 +16,7 @@ import { TensionArrow, CurrentArrow } from './Arrows.jsx'
  *
  * Chaque bloc peut contenir jusqu'à 3 dipôles en parallèle : le premier sur la ligne principale,
  * les autres décalés vers l'intérieur du circuit et reliés par deux fils de dérivation.
- * Les flèches-tension sont droites, parallèles au bloc, en convention récepteur (opposées à i) ;
+ * Les flèches-tension sont droites, au-dessus de chaque bloc, en convention récepteur (opposées à i) ;
  * celle du générateur est en convention générateur.
  */
 const Y = 0.05
@@ -42,6 +42,7 @@ const RED = '#c0392b'
 const BLACK = '#22252a'
 const PAR = 0.62 // décalage d'un dipôle en parallèle
 const TEXT_PERIOD = 0.25 // s : rafraîchissement des valeurs affichées
+const ARROW_Y = 1.15 // hauteur des flèches-tension, au-dessus des dipôles
 
 const LEN = { R: 1.1, L: 1.2, C: 0.5 }
 export const U_COLORS = { R: '#3e9bff', L: '#b07cff', C: '#e5484d', E: '#e0a000', i: '#30a46c' }
@@ -196,12 +197,12 @@ export default function CircuitScene({
         })}
         <TensionArrow
           visible={view.tensions}
-          from={[pl.bus2, 0.1, ZT - 0.5]}
-          to={[pl.bus1, 0.1, ZT - 0.5]}
+          from={[pl.bus2, ARROW_Y, ZT]}
+          to={[pl.bus1, ARROW_Y, ZT]}
           color={U_COLORS[els[0].type]}
           name={sl.name}
           valueRef={(e) => (uTexts.current[k] = e)}
-          labelOffset={[0, 0.12, -0.22]}
+          labelOffset={[0, 0.2, 0]}
         />
       </group>
     )
@@ -232,12 +233,12 @@ export default function CircuitScene({
         })}
         <TensionArrow
           visible={view.tensions}
-          from={[XR + 0.55, 0.1, pl.bus2]}
-          to={[XR + 0.55, 0.1, pl.bus1]}
+          from={[XR, ARROW_Y, pl.bus2]}
+          to={[XR, ARROW_Y, pl.bus1]}
           color={U_COLORS[els[0].type]}
           name={sl.name}
           valueRef={(e) => (uTexts.current[top.length] = e)}
-          labelOffset={[0.35, 0.12, 0]}
+          labelOffset={[0, 0.2, 0]}
         />
       </group>
     )
@@ -305,12 +306,12 @@ export default function CircuitScene({
       {source.u && (
         <TensionArrow
           visible={view.tensions}
-          from={[SX + 0.35, 0.1, 0.55]}
-          to={[SX + 0.35, 0.1, -0.55]}
+          from={[SX - 0.78, 1.15, 0.55]}
+          to={[SX - 0.78, 1.15, -0.55]}
           color={U_COLORS.E}
           name={source.name}
           valueRef={uSrcText}
-          labelOffset={[0.45, 0.12, 0]}
+          labelOffset={[0, 0.2, 0]}
         />
       )}
 
