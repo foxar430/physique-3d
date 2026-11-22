@@ -210,3 +210,15 @@ button.link { border: 0; background: none; padding: 4px 0; color: var(--text-2);
   border-radius: 99px; font-size: 14px; backdrop-filter: blur(4px); white-space: nowrap;
 }
 .start-banner button { border-radius: 99px; padding: 6px 16px; }
+.filters { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 6px; }
+.tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; align-self: flex-start; }
+.tabs button { border: 0; background: transparent; padding: 8px 16px; border-radius: 9px; font-weight: 600; font-size: 14px; color: var(--text-2); }
+.tabs button.on { background: var(--accent); color: #fff; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border-radius: 99px; padding: 5px 12px; font-size: 13px; }
+.chips button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.level h2 .count { font-size: 13px; font-weight: 500; color: var(--text-2); margin-left: 6px; }
+.card .secs { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; align-self: end; }
+.card .secs i { white-space: nowrap; font-style: normal; font-size: 11px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--border); color: var(--text-2); }
+.card .secs i.hit { border-color: var(--accent); color: var(--accent); }
+.home .note { font-size: 12.5px; color: var(--text-2); margin-top: 18px; }
