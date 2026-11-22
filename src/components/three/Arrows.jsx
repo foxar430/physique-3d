@@ -3,32 +3,38 @@ import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 
 /**
- * Flèche-tension : arc qui part de `from` et pointe vers `to`.
- * Convention : la flèche de u_AB pointe vers A.
+ * Flèche-tension droite, couchée sur la plaque, parallèle au dipôle.
+ * Convention : la flèche de u_AB pointe vers A (elle va de `from` vers `to`).
  */
-export function TensionArrow({ from, to, lift = 0.55, bulge = [0, 0, 0], color, name, valueRef, visible = true }) {
-  const { tube, tip, quat, apex } = useMemo(() => {
+export function TensionArrow({ from, to, color, name, valueRef, visible = true, labelOffset = [0, 0.16, 0] }) {
+  const { pos, quat, len, tip, mid } = useMemo(() => {
     const a = new THREE.Vector3(...from)
     const b = new THREE.Vector3(...to)
-    const mid = a.clone().add(b).multiplyScalar(0.5).add(new THREE.Vector3(bulge[0], lift, bulge[2]))
-    const curve = new THREE.QuadraticBezierCurve3(a, mid, b)
-    const tube = new THREE.TubeGeometry(curve, 40, 0.022, 8, false)
-    const tan = curve.getTangent(1)
-    const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), tan)
-    const apex = curve.getPoint(0.5)
-    return { tube, tip: b.clone().addScaledVector(tan, 0.06), quat, apex }
-  }, [from, to, lift, bulge])
+    const d = b.clone().sub(a)
+    const len = d.length()
+    const dir = d.clone().normalize()
+    const head = Math.min(0.16, len * 0.3)
+    const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
+    return {
+      pos: a.clone().addScaledVector(dir, (len - head) / 2),
+      quat,
+      len: len - head,
+      tip: b.clone().addScaledVector(dir, -head / 2),
+      mid: a.clone().add(b).multiplyScalar(0.5),
+    }
+  }, [from, to])
   return (
     <group visible={visible}>
-      <mesh geometry={tube}>
-        <meshBasicMaterial color={color} />
+      <mesh position={pos} quaternion={quat}>
+        <cylinderGeometry args={[0.018, 0.018, Math.max(len, 0.01), 10]} />
+        <meshBasicMaterial color={color} toneMapped={false} />
       </mesh>
       <mesh position={tip} quaternion={quat}>
-        <coneGeometry args={[0.07, 0.2, 16]} />
-        <meshBasicMaterial color={color} />
+        <coneGeometry args={[0.06, 0.16, 16]} />
+        <meshBasicMaterial color={color} toneMapped={false} />
       </mesh>
       {visible && (
-        <Html position={[apex.x, apex.y + 0.13, apex.z]} center zIndexRange={[20, 0]}>
+        <Html position={[mid.x + labelOffset[0], mid.y + labelOffset[1], mid.z + labelOffset[2]]} center zIndexRange={[20, 0]}>
           <div className="arrow-lbl" style={{ borderColor: color, color }}>
             {name} = <b ref={valueRef}>—</b>
           </div>

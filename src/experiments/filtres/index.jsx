@@ -5,7 +5,8 @@ import LiveChart from '../../components/LiveChart.jsx'
 import Plot from '../../components/Plot.jsx'
 import CircuitScene from '../../components/three/Circuit.jsx'
 import { useSimulation } from '../../lib/useSimulation.js'
-import { filterModel, DEFAULTS, Nc, transfer, ue, us } from './model.js'
+import { filterModel, DEFAULTS, Nc, transfer, ue, us, baseSlots, slotsOf } from './model.js'
+import CircuitBuilder, { sceneSlots } from '../../components/CircuitBuilder.jsx'
 
 export const meta = {
   id: 'filtres',
@@ -18,9 +19,7 @@ export const meta = {
 const SPEEDS = [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05]
 const nearestSpeed = (N) => SPEEDS.reduce((a, b) => (Math.abs(Math.log(b * N)) < Math.abs(Math.log(a * N)) ? b : a))
 
-const uC = (s, p) => s.q / (p.C * 1e-6)
-const R_EL = { type: 'R', label: 'R', name: <>u<sub>R</sub></>, u: (s, p) => p.R * s.i, ohms: (p) => p.R }
-const C_EL = { type: 'C', label: 'C', name: <>u<sub>C</sub></>, u: uC }
+const NAMES = { R: <>u<sub>R</sub></>, C: <>u<sub>C</sub></> }
 const SOURCE = { kind: 'gbf', name: <>u<sub>E</sub></>, u: (s, p) => ue(s.t, p), display: (s, p) => (p.N >= 1000 ? (p.N / 1000).toFixed(2) + ' kHz' : p.N.toFixed(0) + ' Hz') }
 const METER = { label: 'u_S', value: (s, p) => us(s, p).toFixed(2) + ' V' }
 
@@ -31,6 +30,7 @@ export default function FilterExperiment() {
   const nc = Nc(params)
   const tr = transfer(params)
   const bas = params.type === 'bas'
+  const view = sceneSlots(slotsOf(params), NAMES)
   const setN = (N) => {
     setParams((p) => ({ ...p, N }))
     sim.setSpeed(nearestSpeed(N))
@@ -59,11 +59,11 @@ export default function FilterExperiment() {
           source={SOURCE}
           amps={(s) => s.i}
           hasSwitch={false}
-          top={[bas ? R_EL : C_EL]}
-          right={bas ? C_EL : R_EL}
+          top={view.top}
+          right={view.right}
           meter={METER}
           current={(s, p) => s.i / (p.Ue / p.R)}
-          charge={(s, p) => uC(s, p) / p.Ue}
+          charge={(s, p) => (s.els?.C?.v ?? 0) / p.Ue}
         />
       )}
       onParamsReset={() => {
@@ -101,6 +101,7 @@ export default function FilterExperiment() {
           <Slider label="Amplitude Ue" value={params.Ue} min={1} max={8} step={0.5} unit="V" onChange={set('Ue')} />
           <Slider label="Résistance R" value={params.R} min={100} max={10000} step={100} unit="Ω" onChange={set('R')} />
           <Slider label="Capacité C" value={params.C} min={0.1} max={5} step={0.01} unit="µF" onChange={set('C')} format={(v) => v.toFixed(2)} />
+          <CircuitBuilder params={params} setParams={setParams} base={baseSlots} types={['R', 'C']} ranges={{ R: { min: 100, max: 10000, step: 100, def: 1000, unit: 'Ω', fmt: (v) => v }, C: { min: 0.1, max: 5, step: 0.01, def: 0.47, unit: 'µF', fmt: (v) => v.toFixed(2) } }} />
           <p className="formula">
             Bande passante : {bas ? <>0 ≤ N ≤ N<sub>c</sub></> : <>N ≥ N<sub>c</sub></>} = {nc.toFixed(0)} Hz
             <br />U<sub>S</sub> = T·U<sub>E</sub> = {(tr.T * params.Ue).toFixed(2)} V

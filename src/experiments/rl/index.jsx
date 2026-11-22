@@ -4,7 +4,8 @@ import Slider from '../../components/Slider.jsx'
 import LiveChart from '../../components/LiveChart.jsx'
 import CircuitScene from '../../components/three/Circuit.jsx'
 import { useSimulation, useSampled } from '../../lib/useSimulation.js'
-import { rlModel, DEFAULTS, tau, I0, derived } from './model.js'
+import { rlModel, DEFAULTS, tau, I0, derived, baseSlots, slotsOf } from './model.js'
+import CircuitBuilder, { sceneSlots } from '../../components/CircuitBuilder.jsx'
 
 export const meta = {
   id: 'rl',
@@ -16,8 +17,7 @@ export const meta = {
 
 const SPEED_NOTE = 'Le phénomène dure quelques millisecondes : la simulation est ralentie.'
 
-const TOP = [{ type: 'R', label: 'R', name: <>u<sub>R</sub></>, u: (s, p) => derived(s, p).uR, ohms: (p) => p.R }]
-const RIGHT = { type: 'L', label: '(L, r)', name: <>u<sub>B</sub></>, u: (s, p) => derived(s, p).uB }
+const NAMES = { R: <>u<sub>R</sub></>, L: <>u<sub>B</sub></> }
 const SOURCE = { kind: 'battery', name: 'E', u: (s, p) => p.E, display: (s, p) => p.E.toFixed(1) + ' V' }
 const METER = { label: 'i', value: (s) => (s.i * 1000).toFixed(1) + ' mA' }
 
@@ -26,14 +26,16 @@ export default function RLExperiment() {
   const sim = useSimulation(rlModel, params, { speed: 0.01 })
   const set = (k) => (v) => setParams((p) => ({ ...p, [k]: v }))
   const T = tau(params)
+  const tauOk = isFinite(T)
+  const view = sceneSlots(slotsOf(params), NAMES)
 
   const toggle = useCallback(() => {
     const s = sim.stateRef.current
     sim.stateRef.current = { ...s, k: s.k === 1 ? 2 : 1, tSwitch: s.t, iSwitch: s.i }
   }, [sim.stateRef])
 
-  const read = useSampled(sim, (s) => ({ ...derived(s, sim.paramsRef.current), i: s.i, k: s.k }))
-  const win = Math.max(6 * T, 0.002)
+  const read = useSampled(sim, (s) => ({ ...derived(s, sim.paramsRef.current), i: s.i, k: s.k }), 4)
+  const win = Math.max(6 * (tauOk ? T : 0.01), 0.002)
 
   return (
     <ExperimentLayout
@@ -51,10 +53,10 @@ export default function RLExperiment() {
           source={SOURCE}
           amps={(s) => s.i}
           onToggle={toggle}
-          top={TOP}
-          right={RIGHT}
+          top={view.top}
+          right={view.right}
           meter={METER}
-          current={(s, p) => s.i / I0(p)}
+          current={(s, p) => s.i / (I0(p) || p.E / (p.R + p.r))}
         />
       )}
       onParamsReset={() => setParams(DEFAULTS)}
@@ -63,7 +65,7 @@ export default function RLExperiment() {
           <div className={'state ' + (read.k === 1 ? 'charge' : 'decharge')}>
             {read.k === 1 ? 'K en 1 : ÉTABLISSEMENT' : 'K en 2 : RUPTURE'}
           </div>
-          <div>τ = L/(R+r) = <b>{(T * 1000).toFixed(2)} ms</b></div>
+          <div>τ = L/(R+r) = <b>{tauOk ? (T * 1000).toFixed(2) + ' ms' : '— (circuit mixte)'}</b></div>
           <div>i = <b>{(read.i * 1000).toFixed(1)} mA</b></div>
           <div>u<sub>B</sub> = <b>{read.uB.toFixed(2)} V</b></div>
           <div>E<sub>L</sub> = ½Li² = <b>{(read.energy * 1000).toFixed(2)} mJ</b></div>
@@ -79,6 +81,7 @@ export default function RLExperiment() {
           <Slider label="Résistance R" value={params.R} min={10} max={200} step={5} unit="Ω" onChange={set('R')} />
           <Slider label="Inductance L" value={params.L} min={50} max={1000} step={10} unit="mH" onChange={set('L')} />
           <Slider label="Résistance interne de la bobine r" value={params.r} min={0} max={30} step={1} unit="Ω" onChange={set('r')} />
+          <CircuitBuilder params={params} setParams={setParams} base={baseSlots} types={['R', 'L', 'C']} ranges={{ R: { min: 10, max: 200, step: 5, def: 40, unit: 'Ω', fmt: (v) => v }, L: { min: 50, max: 1000, step: 10, def: 500, unit: 'mH', fmt: (v) => v } }} />
           <p className="formula">
             τ = L/(R+r) = {(T * 1000).toFixed(2)} ms
             <br />

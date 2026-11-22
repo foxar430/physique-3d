@@ -1,36 +1,45 @@
-import { rk4Step } from '../../lib/rk4.js'
+import { makeCircuitModel, buildSlots, equivalents, acSolve } from '../../lib/circuit.js'
+import { withLabels } from '../../components/CircuitBuilder.jsx'
 
 /**
- * Filtres RC passifs alimentés par un GBF : ue(t) = Ue·sin(2πNt).
- *   R·dq/dt + q/C = ue(t)
- * Passe-bas : sortie aux bornes de C (us = q/C). Passe-haut : sortie aux bornes de R (us = R·i).
- * Transmittance T = Us/Ue, gain G = 20·log T, fréquence de coupure Nc = 1/(2πRC) (G = G0 − 3 dB).
- * Paramètres : type ('bas' | 'haut'), Ue (V), N (Hz), R (Ω), C (µF).
+ * Filtres RC alimentés par un GBF : ue(t) = Ue·sin(2πNt).
+ * Passe-bas : sortie aux bornes de C (bloc de droite). Passe-haut : sortie aux bornes de R.
+ * T = Us/Ue, G = 20·log T, Nc = 1/(2πRC). Simulation par analyse nodale ; la courbe de gain
+ * est calculée avec les impédances complexes (elle reste juste avec les composants ajoutés).
+ * Paramètres : type ('bas' | 'haut'), Ue (V), N (Hz), R (Ω), C (µF), extras.
  */
-export const DEFAULTS = { type: 'bas', Ue: 4, N: 200, R: 1000, C: 0.47 }
+export const DEFAULTS = { type: 'bas', Ue: 4, N: 200, R: 1000, C: 0.47, extras: [] }
 
-export const Nc = (p) => 1 / (2 * Math.PI * p.R * p.C * 1e-6)
+const elR = (p) => ({ id: 'R', type: 'R', value: p.R, label: 'R' })
+const elC = (p) => ({ id: 'C', type: 'C', value: p.C, label: 'C' })
+export const baseSlots = (p) =>
+  p.type === 'bas'
+    ? [{ id: 'R', pos: 'top', els: [elR(p)] }, { id: 'C', pos: 'right', els: [elC(p)] }]
+    : [{ id: 'C', pos: 'top', els: [elC(p)] }, { id: 'R', pos: 'right', els: [elR(p)] }]
+export const slotsOf = (p) => withLabels(buildSlots(baseSlots(p), p.extras))
+export const outId = (p) => (p.type === 'bas' ? 'C' : 'R')
+
+export function Nc(p) {
+  const e = equivalents(slotsOf(p))
+  const R = e.simple && e.R > 0 ? e.R : p.R
+  const C = e.simple && isFinite(e.C) ? e.C : p.C * 1e-6
+  return 1 / (2 * Math.PI * R * C)
+}
 
 export function transfer(p, N = p.N) {
-  const x = N / Nc(p)
-  const T = p.type === 'bas' ? 1 / Math.sqrt(1 + x * x) : x / Math.sqrt(1 + x * x)
-  // déphasage φ = φs − φe (rad)
-  const phi = p.type === 'bas' ? -Math.atan(x) : Math.PI / 2 - Math.atan(x)
-  return { T, G: 20 * Math.log10(T), phi }
+  const r = acSolve(slotsOf(p), p.Ue, N)
+  const o = r.U[outId(p)]
+  const T = o.amp / p.Ue
+  return { T, G: 20 * Math.log10(Math.max(T, 1e-9)), phi: o.phase }
 }
 
 export const ue = (t, p) => p.Ue * Math.sin(2 * Math.PI * p.N * t)
 
-export const filterModel = {
+export const filterModel = makeCircuitModel({
   maxDt: 2e-6,
-  init: () => ({ t: 0, q: 0, i: 0 }),
-  step(s, dt, p) {
-    const C = p.C * 1e-6
-    const f = (t, [q]) => [(ue(t, p) - q / C) / p.R]
-    const [q] = rk4Step(f, s.t, [s.q], dt)
-    const t = s.t + dt
-    return { t, q, i: (ue(t, p) - q / C) / p.R }
-  },
-}
+  base: baseSlots,
+  source: (t, p) => ue(t, p),
+  fields: (s) => ({ i: s.iLoop }),
+})
 
-export const us = (s, p) => (p.type === 'bas' ? s.q / (p.C * 1e-6) : p.R * s.i)
+export const us = (s, p) => s.slotU?.[outId(p)] ?? 0

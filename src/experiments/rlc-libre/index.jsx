@@ -4,7 +4,8 @@ import Slider from '../../components/Slider.jsx'
 import LiveChart from '../../components/LiveChart.jsx'
 import CircuitScene from '../../components/three/Circuit.jsx'
 import { useSimulation, useSampled } from '../../lib/useSimulation.js'
-import { rlcModel, DEFAULTS, T0, Rc, derived, Imax } from './model.js'
+import { rlcModel, DEFAULTS, T0, Rc, Rtot, derived, Imax, baseSlots, slotsOf } from './model.js'
+import CircuitBuilder, { sceneSlots } from '../../components/CircuitBuilder.jsx'
 
 export const meta = {
   id: 'rlc-libre',
@@ -14,12 +15,7 @@ export const meta = {
   chapter: 'Évolution de systèmes électriques, ch. 3',
 }
 
-const TOP = [
-  { type: 'R', label: 'R', name: <>u<sub>R</sub></>, u: (s, p) => p.R * s.i, ohms: (p) => p.R },
-  // uL = L·di/dt, déduite de la loi des mailles
-  { type: 'L', label: 'L', name: <>u<sub>L</sub></>, u: (s, p) => (s.k === 1 ? p.E : 0) - p.R * s.i - derived(s, p).uC },
-]
-const RIGHT = { type: 'C', label: 'C', name: <>u<sub>C</sub></>, u: (s, p) => derived(s, p).uC }
+const NAMES = { R: <>u<sub>R</sub></>, L: <>u<sub>L</sub></>, C: <>u<sub>C</sub></> }
 const SOURCE = { kind: 'battery', name: 'E', u: (s, p) => p.E, display: (s, p) => p.E.toFixed(1) + ' V' }
 const METER = { label: 'uC', value: (s, p) => derived(s, p).uC.toFixed(2) + ' V' }
 
@@ -29,19 +25,21 @@ export default function RLCFreeExperiment() {
   const set = (k) => (v) => setParams((p) => ({ ...p, [k]: v }))
   const period = T0(params)
   const rc = Rc(params)
+  const Rt = Rtot(params)
+  const view = sceneSlots(slotsOf(params), NAMES)
 
   const toggle = useCallback(() => {
     const s = sim.stateRef.current
     sim.stateRef.current = { ...s, k: s.k === 1 ? 2 : 1 }
   }, [sim.stateRef])
 
-  const read = useSampled(sim, (s) => ({ ...derived(s, sim.paramsRef.current), i: s.i, k: s.k }))
+  const read = useSampled(sim, (s) => ({ ...derived(s, sim.paramsRef.current), i: s.i, k: s.k }), 4)
   const win = Math.max(5 * period, 0.002)
 
   const regime =
-    params.R === 0
+    Rt < 0.01
       ? 'Non amorti : sinusoïdal'
-      : params.R < rc
+      : Rt < rc
         ? 'Pseudo-périodique'
         : 'Apériodique'
 
@@ -61,8 +59,8 @@ export default function RLCFreeExperiment() {
           source={SOURCE}
           amps={(s) => s.i}
           onToggle={toggle}
-          top={TOP}
-          right={RIGHT}
+          top={view.top}
+          right={view.right}
           meter={METER}
           current={(s, p) => s.i / Imax(p)}
           charge={(s, p) => derived(s, p).uC / p.E}
@@ -89,6 +87,7 @@ export default function RLCFreeExperiment() {
           <Slider label="Résistance totale R" value={params.R} min={0} max={500} step={5} unit="Ω" onChange={set('R')} />
           <Slider label="Inductance L" value={params.L} min={10} max={1000} step={10} unit="mH" onChange={set('L')} />
           <Slider label="Capacité C" value={params.C} min={1} max={100} step={1} unit="µF" onChange={set('C')} />
+          <CircuitBuilder params={params} setParams={setParams} base={baseSlots} types={['C', 'R', 'L']} ranges={{ C: { min: 1, max: 100, step: 1, def: 10, unit: 'µF', fmt: (v) => v }, R: { min: 5, max: 500, step: 5, def: 20, unit: 'Ω', fmt: (v) => v } }} />
           <p className="formula">
             T₀ = 2π√(LC) = {(period * 1000).toFixed(2)} ms · N₀ = {(1 / period).toFixed(1)} Hz
             <br />

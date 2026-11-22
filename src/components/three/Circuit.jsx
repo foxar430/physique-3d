@@ -9,14 +9,15 @@ import { TensionArrow, CurrentArrow } from './Arrows.jsx'
 /*
  * Circuit générique sur une plaque de montage (vue de dessus : x → droite, z → observateur).
  *
- *  ALIM(+)──1  K  P ─i→─[ top[0] ]──[ top[1] ]── TR
- *     │        2                                 │
- *     │        │                             [ right ]
- *  ALIM(−)─────J──────────────────────────────── BR
+ *  ALIM(+)──1  K  P ─i→─[ bloc 1 ]─[ bloc 2 ]─…── TR
+ *     │        2                                  │
+ *     │        │                              [ bloc droit ]
+ *  ALIM(−)─────J───────────────────────────────── BR
  *
- * Orientation choisie (positive) du courant : de P vers la droite dans la branche du haut,
- * puis vers le bas dans la branche de droite. Les flèches-tension des récepteurs sont
- * orientées en convention récepteur (opposées à i) ; celle du générateur en convention générateur.
+ * Chaque bloc peut contenir jusqu'à 3 dipôles en parallèle : le premier sur la ligne principale,
+ * les autres décalés vers l'intérieur du circuit et reliés par deux fils de dérivation.
+ * Les flèches-tension sont droites, parallèles au bloc, en convention récepteur (opposées à i) ;
+ * celle du générateur est en convention générateur.
  */
 const Y = 0.05
 const SX = -2.4
@@ -29,14 +30,18 @@ const P = [-0.7, Y, -1.2]
 const T2 = [-0.7, Y, -0.4]
 const TOP_A = -0.2
 const TOP_B = 2.3
-const TR = [2.6, Y, -1.2]
+const ZT = -1.2 // ligne du haut
+const XR = 2.6 // ligne de droite
+const TR = [XR, Y, ZT]
 const RIGHT_A = -0.68
 const RIGHT_B = 0.68
-const BR = [2.6, Y, 1.2]
+const BR = [XR, Y, 1.2]
 const J = [-0.7, Y, 1.2]
 const N_FLOW = 44
 const RED = '#c0392b'
 const BLACK = '#22252a'
+const PAR = 0.62 // décalage d'un dipôle en parallèle
+const TEXT_PERIOD = 0.25 // s : rafraîchissement des valeurs affichées
 
 const LEN = { R: 1.1, L: 1.2, C: 0.5 }
 export const U_COLORS = { R: '#3e9bff', L: '#b07cff', C: '#e5484d', E: '#e0a000', i: '#30a46c' }
@@ -47,11 +52,18 @@ function slotsAlong(n, a, b) {
   return out
 }
 
-/** Géométrie d'un composant placé sur un segment (axe x en haut, axe z à droite). */
-function placement(el, a, b, axis) {
+/** éléments d'un bloc (compatibilité : un élément simple devient un bloc d'un seul dipôle) */
+const elsOf = (slot) => slot.els ?? [{ type: slot.type, ohms: slot.ohms, label: slot.label }]
+
+/** géométrie d'un bloc placé sur [a, b] */
+function placement(slot, a, b) {
   const c = (a + b) / 2
-  const h = LEN[el.type] / 2
-  return { c, e1: c - h, e2: c + h, axis }
+  const els = elsOf(slot)
+  const room = b - a - 0.22
+  const scale = Math.min(1, ...els.map((e) => room / LEN[e.type]))
+  const half = Math.max(...els.map((e) => (LEN[e.type] * scale) / 2))
+  const main = (LEN[els[0].type] * scale) / 2
+  return { c, a, b, scale, e1: c - main, e2: c + main, bus1: c - half - 0.06, bus2: c + half + 0.06, els }
 }
 
 export default function CircuitScene({
@@ -66,20 +78,18 @@ export default function CircuitScene({
   const iText = useRef()
   const uSrcText = useRef()
   const uTexts = useRef([])
+  const lastText = useRef(-1)
   const live = useMemo(() => ({ glows: new Set(), fields: new Set(), qA: new Set(), qB: new Set() }), [])
   const paths = useMemo(() => ({ 1: makePath([BAT_P, TL, T1, P, TR, BR, J, BL, BAT_N, BAT_P]), 2: makePath([P, TR, BR, J, T2, P]) }), [])
 
   const topSlots = slotsAlong(top.length, TOP_A, TOP_B)
-  const topPl = top.map((el, k) => placement(el, topSlots[k][0], topSlots[k][1], 'x'))
-  const rightPl = right ? placement(right, RIGHT_A, RIGHT_B, 'z') : null
+  const topPl = top.map((sl, k) => placement(sl, topSlots[k][0], topSlots[k][1]))
+  const rightPl = right ? placement(right, RIGHT_A, RIGHT_B) : null
 
-  // zones où l'on ne dessine pas le courant : générateur, corps des composants
-  const zones = useMemo(() => {
-    const z = [{ x: [SX - 0.01, SX + 0.01], z: [-0.6, 0.6] }]
-    topPl.forEach((pl) => z.push({ x: [pl.e1, pl.e2], z: [-1.21, -1.19] }))
-    if (rightPl) z.push({ x: [2.59, 2.61], z: [rightPl.e1, rightPl.e2] })
-    return z
-  }, [top, right]) // eslint-disable-line react-hooks/exhaustive-deps
+  // zones où l'on ne dessine pas le courant : générateur, corps des dipôles principaux
+  const zones = [{ x: [SX - 0.01, SX + 0.01], z: [-0.6, 0.6] }]
+  topPl.forEach((pl) => zones.push({ x: [pl.e1, pl.e2], z: [ZT - 0.01, ZT + 0.01] }))
+  if (rightPl) zones.push({ x: [XR - 0.01, XR + 0.01], z: [rightPl.e1, rightPl.e2] })
 
   const phase = useRef(0)
   const lastT = useRef(0)
@@ -87,9 +97,9 @@ export default function CircuitScene({
     () => ({ m: new THREE.Matrix4(), v: new THREE.Vector3(), d: new THREE.Vector3(), s: new THREE.Vector3(), q: new THREE.Quaternion(), up: new THREE.Vector3(0, 1, 0) }),
     [],
   )
-  const elements = [...top, ...(right ? [right] : [])]
+  const slots = [...top, ...(right ? [right] : [])]
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }, delta) => {
     const s = sim.stateRef.current
     const p = sim.paramsRef.current
     const k = hasSwitch ? s.k : 1
@@ -102,18 +112,6 @@ export default function CircuitScene({
     }
     live.glows.forEach((m) => (m.emissiveIntensity = 1.8 * r2))
     live.fields.forEach((m) => (m.opacity = 0.75 * r2))
-    if (charge) {
-      const f = THREE.MathUtils.clamp(charge(s, p), -1, 1)
-      const a = Math.min(1, Math.abs(f) * 1.4)
-      const setQ = (set, plus) =>
-        set.forEach((el) => {
-          el.textContent = plus ? '+q' : '−q'
-          el.className = 'qbadge ' + (plus ? 'pos' : 'neg')
-          el.style.opacity = a.toFixed(2)
-        })
-      setQ(live.qA, f >= 0)
-      setQ(live.qB, f < 0)
-    }
 
     // sens réel du courant : chevrons qui avancent dans le sens de i
     const advancing = s.t > lastT.current
@@ -138,23 +136,111 @@ export default function CircuitScene({
     }
     flow.current.instanceMatrix.needsUpdate = true
 
-    // valeurs affichées
+    // valeurs affichées : rafraîchies 4 fois par seconde pour rester lisibles
+    const now = clock.elapsedTime
+    if (now - lastText.current < TEXT_PERIOD) return
+    lastText.current = now
+    if (charge) {
+      const f = THREE.MathUtils.clamp(charge(s, p), -1, 1)
+      const a = Math.min(1, Math.abs(f) * 1.4)
+      const setQ = (set, plus) =>
+        set.forEach((el) => {
+          el.textContent = plus ? '+q' : '−q'
+          el.className = 'qbadge ' + (plus ? 'pos' : 'neg')
+          el.style.opacity = a.toFixed(2)
+        })
+      setQ(live.qA, f >= 0)
+      setQ(live.qB, f < 0)
+    }
     if (meterText.current && meter) meterText.current.textContent = meter.value(s, p)
     if (srcText.current && source.display) srcText.current.textContent = source.display(s, p)
     if (view.tensions) {
       if (iText.current && amps) iText.current.textContent = fmtA(amps(s, p))
       if (uSrcText.current && source.u) uSrcText.current.textContent = fmtV(source.u(s, p))
-      elements.forEach((el, n) => {
+      slots.forEach((sl, n) => {
         const t = uTexts.current[n]
-        if (t && el.u) t.textContent = fmtV(el.u(s, p))
+        if (t && sl.u) t.textContent = fmtV(sl.u(s, p))
       })
     }
   })
 
   const renderPart = (el) => {
-    if (el.type === 'R') return <Resistor ohms={el.ohms?.(params)} glowRef={(m) => m && live.glows.add(m)} />
-    if (el.type === 'L') return <Coil fieldRef={(m) => live.fields.add(m)} />
+    if (el.type === 'R') return <Resistor ohms={el.ohms} glowRef={(m) => m && live.glows.add(m)} />
+    if (el.type === 'L') return <Coil fieldRef={(m) => m && live.fields.add(m)} />
     return <Capacitor labelA={(e) => e && live.qA.add(e)} labelB={(e) => e && live.qB.add(e)} />
+  }
+
+  /** dessine un bloc du haut (dipôles en parallèle décalés vers +z) */
+  const topBlock = (sl, pl, k) => {
+    const els = pl.els
+    const color = (i) => (i === 0 ? RED : RED)
+    return (
+      <group key={k}>
+        <Wire a={[pl.a, Y, ZT]} b={[pl.e1, Y, ZT]} color={RED} />
+        <Wire a={[pl.e2, Y, ZT]} b={[pl.b, Y, ZT]} color={RED} />
+        {els.map((el, i) => {
+          const z = ZT + i * PAR
+          const half = (LEN[el.type] * pl.scale) / 2
+          return (
+            <group key={i}>
+              <group position={[pl.c, 0, z]} scale={pl.scale}>{renderPart(el)}</group>
+              {i > 0 && (
+                <>
+                  <Polyline points={[[pl.bus1, Y, ZT], [pl.bus1, Y, z], [pl.c - half, Y, z]]} color={color(i)} radius={0.028} />
+                  <Polyline points={[[pl.c + half, Y, z], [pl.bus2, Y, z], [pl.bus2, Y, ZT]]} color={color(i)} radius={0.028} />
+                </>
+              )}
+              <Html position={[pl.c, 0.12, z + (i === els.length - 1 ? 0.42 : 0.3)]} center className="lbl big" zIndexRange={[10, 0]}>{el.label}</Html>
+            </group>
+          )
+        })}
+        <TensionArrow
+          visible={view.tensions}
+          from={[pl.bus2, 0.1, ZT - 0.5]}
+          to={[pl.bus1, 0.1, ZT - 0.5]}
+          color={U_COLORS[els[0].type]}
+          name={sl.name}
+          valueRef={(e) => (uTexts.current[k] = e)}
+          labelOffset={[0, 0.12, -0.22]}
+        />
+      </group>
+    )
+  }
+
+  /** bloc de droite (dipôles en parallèle décalés vers −x) */
+  const rightBlock = (sl, pl) => {
+    const els = pl.els
+    return (
+      <group>
+        <Wire a={[XR, Y, RIGHT_A]} b={[XR, Y, pl.e1]} color={RED} />
+        <Wire a={[XR, Y, pl.e2]} b={[XR, Y, RIGHT_B]} color={BLACK} />
+        {els.map((el, i) => {
+          const x = XR - i * PAR
+          const half = (LEN[el.type] * pl.scale) / 2
+          return (
+            <group key={i}>
+              <group position={[x, 0, 0]} rotation={[0, -Math.PI / 2, 0]} scale={pl.scale}>{renderPart(el)}</group>
+              {i > 0 && (
+                <>
+                  <Polyline points={[[XR, Y, pl.bus1], [x, Y, pl.bus1], [x, Y, -half]]} color={RED} radius={0.028} />
+                  <Polyline points={[[x, Y, half], [x, Y, pl.bus2], [XR, Y, pl.bus2]]} color={BLACK} radius={0.028} />
+                </>
+              )}
+              <Html position={[x - 0.45, 0.12, 0]} center className="lbl big" zIndexRange={[10, 0]}>{el.label}</Html>
+            </group>
+          )
+        })}
+        <TensionArrow
+          visible={view.tensions}
+          from={[XR + 0.55, 0.1, pl.bus2]}
+          to={[XR + 0.55, 0.1, pl.bus1]}
+          color={U_COLORS[els[0].type]}
+          name={sl.name}
+          valueRef={(e) => (uTexts.current[top.length] = e)}
+          labelOffset={[0.35, 0.12, 0]}
+        />
+      </group>
+    )
   }
 
   return (
@@ -205,77 +291,40 @@ export default function CircuitScene({
       ) : (
         <Wire a={T1} b={P} color={RED} />
       )}
-      <Wire a={P} b={[TOP_A, Y, -1.2]} color={RED} />
+      <Wire a={P} b={[TOP_A, Y, ZT]} color={RED} />
 
       {/* branche du haut */}
-      {top.map((el, k) => {
-        const pl = topPl[k]
-        return (
-          <group key={k}>
-            <Wire a={[topSlots[k][0], Y, -1.2]} b={[pl.e1, Y, -1.2]} color={RED} />
-            <Wire a={[pl.e2, Y, -1.2]} b={[topSlots[k][1], Y, -1.2]} color={RED} />
-            <group position={[pl.c, 0, -1.2]}>{renderPart(el)}</group>
-            <Html position={[pl.c, 0.12, -0.62]} center className="lbl big" zIndexRange={[10, 0]}>{el.label}</Html>
-            <TensionArrow
-              visible={view.tensions}
-              from={[pl.e2, 0.35, -1.8]}
-              to={[pl.e1, 0.35, -1.8]}
-              lift={0.95}
-              color={U_COLORS[el.type]}
-              name={el.name}
-              valueRef={(e) => (uTexts.current[k] = e)}
-            />
-          </group>
-        )
-      })}
-      <Polyline points={[[TOP_B, Y, -1.2], TR, [2.6, Y, RIGHT_A]]} color={RED} />
+      {top.map((sl, k) => topBlock(sl, topPl[k], k))}
+      <Polyline points={[[TOP_B, Y, ZT], TR, [XR, Y, RIGHT_A]]} color={RED} />
 
       {/* branche de droite */}
-      {right && (
-        <group>
-          <Wire a={[2.6, Y, RIGHT_A]} b={[2.6, Y, rightPl.e1]} color={RED} />
-          <Wire a={[2.6, Y, rightPl.e2]} b={[2.6, Y, RIGHT_B]} color={BLACK} />
-          <group position={[2.6, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>{renderPart(right)}</group>
-          <Html position={[2.0, 0.12, 0]} center className="lbl big" zIndexRange={[10, 0]}>{right.label}</Html>
-          <TensionArrow
-            visible={view.tensions}
-            from={[3.2, 0.3, rightPl.e2]}
-            to={[3.2, 0.3, rightPl.e1]}
-            lift={0.7}
-            bulge={[0.6, 0, 0]}
-            color={U_COLORS[right.type]}
-            name={right.name}
-            valueRef={(e) => (uTexts.current[top.length] = e)}
-          />
-        </group>
-      )}
-      <Polyline points={[[2.6, Y, RIGHT_B], BR, J, BL, BAT_N]} color={BLACK} />
+      {right && rightBlock(right, rightPl)}
+      <Polyline points={[[XR, Y, RIGHT_B], BR, J, BL, BAT_N]} color={BLACK} />
 
       {/* tension du générateur (convention générateur : la flèche pointe vers la borne +) */}
       {source.u && (
         <TensionArrow
           visible={view.tensions}
-          from={[SX - 1.05, 0.9, 0.6]}
-          to={[SX - 1.05, 0.9, -0.6]}
-          lift={0.6}
-          bulge={[-0.35, 0, 0]}
+          from={[SX + 0.35, 0.1, 0.55]}
+          to={[SX + 0.35, 0.1, -0.55]}
           color={U_COLORS.E}
           name={source.name}
           valueRef={uSrcText}
+          labelOffset={[0.45, 0.12, 0]}
         />
       )}
 
       {/* flèche d'orientation de l'intensité */}
-      {amps && <CurrentArrow visible={view.tensions} at={[-0.45, Y + 0.05, -1.2]} dir={[1, 0, 0]} valueRef={iText} />}
+      {amps && <CurrentArrow visible={view.tensions} at={[-0.45, Y + 0.05, ZT]} dir={[1, 0, 0]} valueRef={iText} />}
 
-      {/* multimètre branché aux bornes de la branche de droite */}
+      {/* multimètre branché aux bornes du bloc de droite */}
       {meter && right && (
         <>
           <group position={[4.15, 0, 0.75]} rotation={[0, -0.35, 0]}>
             <Multimeter textRef={meterText} label={meter.label} />
           </group>
-          <Lead smooth metal={false} color={RED} radius={0.02} points={[[4.03, 0.2, 1.18], [3.6, 0.5, 0.6], [3.0, 0.4, -0.6], [2.66, 0.1, rightPl.e1 - 0.04]]} />
-          <Lead smooth metal={false} color={BLACK} radius={0.02} points={[[4.33, 0.2, 1.05], [3.9, 0.45, 1.25], [3.0, 0.35, 1.0], [2.66, 0.1, rightPl.e2 + 0.04]]} />
+          <Lead smooth metal={false} color={RED} radius={0.02} points={[[4.03, 0.2, 1.18], [3.6, 0.5, 0.6], [3.0, 0.4, -0.6], [XR + 0.06, 0.1, rightPl.bus1 - 0.04]]} />
+          <Lead smooth metal={false} color={BLACK} radius={0.02} points={[[4.33, 0.2, 1.05], [3.9, 0.45, 1.25], [3.0, 0.35, 1.0], [XR + 0.06, 0.1, rightPl.bus2 + 0.04]]} />
         </>
       )}
 

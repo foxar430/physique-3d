@@ -3,11 +3,11 @@ import ExperimentLayout from '../../components/ExperimentLayout.jsx'
 import Slider from '../../components/Slider.jsx'
 import LiveChart from '../../components/LiveChart.jsx'
 import { useSimulation, useSampled } from '../../lib/useSimulation.js'
-import { rcModel, DEFAULTS, tau, derived } from './model.js'
+import { rcModel, DEFAULTS, tau, derived, baseSlots, slotsOf } from './model.js'
 import CircuitScene from '../../components/three/Circuit.jsx'
+import CircuitBuilder, { sceneSlots } from '../../components/CircuitBuilder.jsx'
 
-const TOP = [{ type: 'R', label: 'R', name: <>u<sub>R</sub></>, u: (s, p) => derived(s, p).uR, ohms: (p) => p.R * 1e3 }]
-const RIGHT = { type: 'C', label: 'C', name: <>u<sub>C</sub></>, u: (s) => s.uC }
+const NAMES = { R: <>u<sub>R</sub></>, C: <>u<sub>C</sub></> }
 const SOURCE = { kind: 'battery', name: 'E', u: (s, p) => p.E, display: (s, p) => p.E.toFixed(1) + ' V' }
 const METER = { label: 'uC', value: (s) => s.uC.toFixed(2) + ' V' }
 
@@ -26,17 +26,20 @@ export default function RCExperiment() {
   const sim = useSimulation(rcModel, params)
   const set = (k) => (v) => setParams((p) => ({ ...p, [k]: v }))
   const T = tau(params)
+  const view = sceneSlots(slotsOf(params), NAMES)
+  const tauOk = isFinite(T)
 
   const toggle = useCallback(() => {
     const s = sim.stateRef.current
     sim.stateRef.current = { ...s, k: s.k === 1 ? 2 : 1, tSwitch: s.t, uSwitch: s.uC }
   }, [sim.stateRef])
 
-  const read = useSampled(sim, (s) => ({ ...derived(s, sim.paramsRef.current), uC: s.uC, k: s.k, dt: s.t - s.tSwitch }))
-  const win = Math.max(6 * T, 0.5)
+  const read = useSampled(sim, (s) => ({ ...derived(s, sim.paramsRef.current), uC: s.uC, k: s.k, dt: s.t - s.tSwitch }), 4)
+  const win = Math.max(6 * (tauOk ? T : 2), 0.5)
 
   const guidesU = (p, s) => {
     const T = tau(p)
+    if (!isFinite(T)) return [{ axis: 'y', value: p.E, label: 'E = ' + p.E + ' V', color: '#8a8f98' }]
     const g = [{ axis: 'y', value: p.E, label: 'E = ' + p.E + ' V', color: '#8a8f98' }]
     const t1 = s.tSwitch + T
     if (s.k === 1) {
@@ -64,10 +67,10 @@ export default function RCExperiment() {
           source={SOURCE}
           amps={(s, p) => derived(s, p).i}
           onToggle={toggle}
-          top={TOP}
-          right={RIGHT}
+          top={view.top}
+          right={view.right}
           meter={METER}
-          current={(s, p) => derived(s, p).i / (p.E / (p.R * 1e3))}
+          current={(s, p) => s.iLoop / (p.E / (p.R * 1e3))}
           charge={(s, p) => s.uC / p.E}
         />
       )}
@@ -77,7 +80,7 @@ export default function RCExperiment() {
           <div className={'state ' + (read.k === 1 ? 'charge' : 'decharge')}>
             {read.k === 1 ? 'K en 1 : CHARGE' : 'K en 2 : DÉCHARGE'}
           </div>
-          <div>τ = RC = <b>{fmtTau(T)}</b></div>
+          <div>τ = R·C = <b>{tauOk ? fmtTau(T) : '— (circuit mixte)'}</b></div>
           <div>u<sub>C</sub> = <b>{read.uC.toFixed(2)} V</b></div>
           <div>i = <b>{(read.i * 1000).toFixed(3)} mA</b></div>
           <div>E<sub>C</sub> = ½Cu<sub>C</sub>² = <b>{(read.energy * 1000).toFixed(2)} mJ</b></div>
@@ -92,7 +95,8 @@ export default function RCExperiment() {
           <Slider label="Tension du générateur E" value={params.E} min={1} max={12} step={0.5} unit="V" onChange={set('E')} />
           <Slider label="Résistance R" value={params.R} min={1} max={50} step={1} unit="kΩ" onChange={set('R')} />
           <Slider label="Capacité C" value={params.C} min={10} max={470} step={10} unit="µF" onChange={set('C')} />
-          <p className="formula">τ = R·C = {params.R} kΩ × {params.C} µF = <b>{fmtTau(T)}</b></p>
+          <p className="formula">τ = R·C = {params.R} kΩ × {params.C} µF = <b>{fmtTau(params.R * params.C * 1e-3)}</b>{params.extras.length > 0 && tauOk && <> · avec les ajouts : τ = Réq·Céq = <b>{fmtTau(T)}</b></>}</p>
+          <CircuitBuilder params={params} setParams={setParams} base={baseSlots} types={['R', 'C']} ranges={{ R: { min: 1000, max: 50000, step: 1000, def: 10000, unit: 'kΩ', fmt: (v) => v / 1000 }, C: { min: 10, max: 470, step: 10, def: 220, unit: 'µF', fmt: (v) => v } }} />
         </>
       }
       charts={
@@ -114,7 +118,7 @@ export default function RCExperiment() {
             window={win}
             yUnit="i (mA)"
             series={[{ label: 'i(t)', color: '#30a46c', get: (s) => derived(s, sim.paramsRef.current).i * 1000 }]}
-            guides={(p, s) => [{ axis: 'x', value: s.tSwitch + tau(p), label: 'τ', color: '#e0a000' }]}
+            guides={(p, s) => (isFinite(tau(p)) ? [{ axis: 'x', value: s.tSwitch + tau(p), label: 'τ', color: '#e0a000' }] : [])}
           />
         </>
       }

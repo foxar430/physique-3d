@@ -5,7 +5,8 @@ import LiveChart from '../../components/LiveChart.jsx'
 import ResonanceCurve from '../../components/ResonanceCurve.jsx'
 import CircuitScene from '../../components/three/Circuit.jsx'
 import { useSimulation, useSampled } from '../../lib/useSimulation.js'
-import { forcedModel, DEFAULTS, N0, steady, Q, u } from './model.js'
+import { forcedModel, DEFAULTS, N0, steady, Q, u, Rtot, baseSlots, slotsOf } from './model.js'
+import CircuitBuilder, { sceneSlots } from '../../components/CircuitBuilder.jsx'
 
 export const meta = {
   id: 'rlc-force',
@@ -16,12 +17,7 @@ export const meta = {
 }
 
 const SPEEDS = [0.001, 0.002, 0.005, 0.01, 0.02]
-const uC = (s, p) => s.q / (p.C * 1e-6)
-const TOP = [
-  { type: 'R', label: 'R', name: <>u<sub>R</sub></>, u: (s, p) => p.R * s.i, ohms: (p) => p.R },
-  { type: 'L', label: 'L', name: <>u<sub>L</sub></>, u: (s, p) => u(s, p) - p.R * s.i - uC(s, p) },
-]
-const RIGHT = { type: 'C', label: 'C', name: <>u<sub>C</sub></>, u: uC }
+const NAMES = { R: <>u<sub>R</sub></>, L: <>u<sub>L</sub></>, C: <>u<sub>C</sub></> }
 const SOURCE = { kind: 'gbf', name: 'u', u, display: (s, p) => p.N + ' Hz' }
 const METER = { label: 'i', value: (s) => (s.i * 1000).toFixed(1) + ' mA' }
 
@@ -33,7 +29,8 @@ export default function RLCForcedExperiment() {
   const st = steady(params)
   const st0 = steady(params, n0)
   const q = Q(params)
-  const read = useSampled(sim, (s) => ({ i: s.i }))
+  const view = sceneSlots(slotsOf(params), NAMES)
+  const read = useSampled(sim, (s) => ({ i: s.i }), 4)
   const win = Math.max(3 / params.N, 0.005)
   const phiDeg = (st.phi * 180) / Math.PI
   const nature = Math.abs(phiDeg) < 2 ? 'résistif (résonance)' : phiDeg > 0 ? 'inductif' : 'capacitif'
@@ -54,11 +51,11 @@ export default function RLCForcedExperiment() {
           source={SOURCE}
           amps={(s) => s.i}
           hasSwitch={false}
-          top={TOP}
-          right={RIGHT}
+          top={view.top}
+          right={view.right}
           meter={METER}
-          current={(s, p) => s.i / (p.Um / p.R)}
-          charge={(s, p) => (s.q / (p.C * 1e-6)) / Math.max(steady(p, N0(p)).Im / (2 * Math.PI * N0(p) * p.C * 1e-6), p.Um)}
+          current={(s, p) => s.i / (p.Um / Math.max(Rtot(p), 1))}
+          charge={(s, p) => s.uC / Math.max(steady(p, N0(p)).Im / (2 * Math.PI * N0(p) * p.C * 1e-6), p.Um)}
         />
       )}
       onParamsReset={() => setParams(DEFAULTS)}
@@ -81,6 +78,7 @@ export default function RLCForcedExperiment() {
           <Slider label="Résistance totale R" value={params.R} min={10} max={300} step={5} unit="Ω" onChange={set('R')} />
           <Slider label="Inductance L" value={params.L} min={50} max={1000} step={10} unit="mH" onChange={set('L')} />
           <Slider label="Capacité C" value={params.C} min={1} max={50} step={1} unit="µF" onChange={set('C')} />
+          <CircuitBuilder params={params} setParams={setParams} base={baseSlots} types={['C', 'R', 'L']} ranges={{ C: { min: 1, max: 50, step: 1, def: 10, unit: 'µF', fmt: (v) => v }, R: { min: 10, max: 300, step: 5, def: 40, unit: 'Ω', fmt: (v) => v } }} />
           <p className="formula">
             À la résonance : I<sub>m0</sub> = U<sub>m</sub>/R = {(st0.Im * 1000).toFixed(1)} mA
             <br />
@@ -100,7 +98,7 @@ export default function RLCForcedExperiment() {
             yUnit="u (V)"
             series={[
               { label: 'u(t) GBF', color: '#e0a000', get: (s) => u(s, sim.paramsRef.current) },
-              { label: 'uR(t) = R·i', color: '#3e9bff', get: (s) => sim.paramsRef.current.R * s.i },
+              { label: 'uR(t) = R·i', color: '#3e9bff', get: (s) => s.slotU.R },
             ]}
           />
           <ResonanceCurve params={params} steady={steady} N0={N0} />
