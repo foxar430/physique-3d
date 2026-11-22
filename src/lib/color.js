@@ -26,4 +26,4 @@ export const wavelengthHex = (nm) => {
 }
 
 /** horloge simple pour les expériences sans dynamique (la 3D peut quand même s'animer) */
-export const clockModel = { maxDt: 1 / 60, init: () => ({ t: 0 }), step: (s, dt) => ({ t: s.t + dt }) }
+export const clockModel = { static: true, maxDt: 1 / 60, init: () => ({ t: 0 }), step: (s, dt) => ({ t: s.t + dt }) }

@@ -39,7 +39,7 @@ export function u(t, p) {
 }
 const ueff = (p) => (p.shape === 'sinus' ? p.Um / Math.SQRT2 : p.shape === 'triangle' ? p.Um / Math.sqrt(3) : p.Um)
 
-const clock = { maxDt: 1 / 240, init: () => ({ t: 0 }), step: (s, dt) => ({ t: s.t + dt }) }
+const clock = { static: true, maxDt: 1 / 240, init: () => ({ t: 0 }), step: (s, dt) => ({ t: s.t + dt }) }
 
 function Scope({ sim }) {
   const { canvas, tex } = useMemo(() => {

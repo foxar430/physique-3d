@@ -16,7 +16,12 @@ export function useSimulation(model, params, options = {}) {
   const stateRef = useRef(model.init(params))
   const paramsRef = useRef(params)
   const listeners = useRef(new Set())
-  const [running, setRunning] = useState(true)
+  // par défaut, l'expérience attend : on règle les paramètres puis on clique sur « Lancer »
+  const autoStart = options.autoStart ?? !!model.static
+  const [running, setRunningState] = useState(autoStart)
+  const [started, setStarted] = useState(autoStart)
+  const startedRef = useRef(autoStart)
+  startedRef.current = started
   const [speed, setSpeed] = useState(options.speed ?? 1)
   const runningRef = useRef(running)
   const speedRef = useRef(speed)
@@ -26,10 +31,27 @@ export function useSimulation(model, params, options = {}) {
 
   const notify = (reset = false) => listeners.current.forEach((fn) => fn(stateRef.current, reset))
 
+  const setRunning = useCallback((on) => {
+    if (on) setStarted(true)
+    setRunningState(on)
+  }, [])
+
+  /** « Recommencer » : retour à l'état initial, en attente du lancement */
   const reset = useCallback(() => {
     stateRef.current = model.init(paramsRef.current)
     notify(true)
-  }, [model])
+    if (!autoStart) {
+      setRunningState(false)
+      setStarted(false)
+    }
+  }, [model, autoStart])
+
+  // tant que l'expérience n'est pas lancée, chaque réglage repart de l'état initial
+  useEffect(() => {
+    if (startedRef.current) return
+    stateRef.current = model.init(params)
+    notify(true)
+  }, [params]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // boucle requestAnimationFrame indépendante du rendu 3D
   useEffect(() => {
@@ -59,7 +81,7 @@ export function useSimulation(model, params, options = {}) {
     return () => listeners.current.delete(fn)
   }, [])
 
-  return { stateRef, paramsRef, running, setRunning, speed, setSpeed, reset, subscribe, notify }
+  return { stateRef, paramsRef, running, setRunning, started, speed, setSpeed, reset, subscribe, notify }
 }
 
 /** Petit hook : relit une valeur de l'état ~10 fois/s pour l'afficher en texte. */

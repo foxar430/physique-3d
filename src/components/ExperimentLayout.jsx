@@ -103,13 +103,19 @@ export default function ExperimentLayout({ meta, sim, scene, camera, controls, r
               ))}
             </div>
           )}
+          {!sim.started && (
+            <div className="start-banner">
+              <span>Règle les paramètres, puis lance l’expérience</span>
+              <button className="primary" onClick={() => sim.setRunning(true)}>▶ Lancer</button>
+            </div>
+          )}
           <p className="hint">Glisse pour tourner · molette pour zoomer</p>
         </section>
 
         <aside className="panel">
           <div className="sim-buttons">
             <button className="primary" onClick={() => sim.setRunning(!sim.running)}>
-              {sim.running ? '⏸ Pause' : '▶ Lecture'}
+              {sim.running ? '⏸ Pause' : sim.started ? '▶ Reprendre' : '▶ Lancer'}
             </button>
             <button onClick={sim.reset}>↺ Recommencer</button>
             <button onClick={fullscreen} title="Plein écran (projection en classe)">⛶</button>

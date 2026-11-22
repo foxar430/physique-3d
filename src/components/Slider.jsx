@@ -16,6 +16,7 @@ export default function Slider({ label, value, min, max, step, unit, onChange, f
         max={max}
         step={step}
         value={value}
+        style={{ '--pct': (((value - min) / (max - min || 1)) * 100).toFixed(1) + '%' }}
         onChange={(e) => onChange(parseFloat(e.target.value))}
       />
     </div>
