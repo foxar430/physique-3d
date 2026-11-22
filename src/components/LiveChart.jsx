@@ -60,7 +60,8 @@ export default function LiveChart({ sim, series, window: win = 10, yMin, yMax, y
       const t0 = Math.max(0, tNow - win)
       const t1 = t0 + win
       const visible = pts.filter((p) => p.t >= t0)
-      const gl = guides ? guides(sim.paramsRef.current, sim.stateRef.current) : []
+      // on ignore un repère non calculable (NaN) : il bloquerait l'échelle
+      const gl = (guides ? guides(sim.paramsRef.current, sim.stateRef.current) : []).filter((g) => Number.isFinite(g.value))
 
       let lo = yMin, hi = yMax
       if (lo === undefined || hi === undefined) {

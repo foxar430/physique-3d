@@ -132,7 +132,7 @@ export function makeCircuitModel({ maxDt, base, source, init = () => 0, initK = 
       for (const s of slots) for (const el of s.els) els[el.id] = { v: el.type === 'C' ? init(p, el, s) : 0, i: 0 }
       const slotU = {}
       for (const s of slots) slotU[s.id] = s.els.find((e) => e.type === 'C') ? els[s.els.find((e) => e.type === 'C').id].v : 0
-      const st = { t: 0, k: initK, kPrev: initK, be: 2, els, slotU, iLoop: 0, tSwitch: 0 }
+      const st = { t: 0, k: initK, kPrev: initK, be: 2, els, slotU, iLoop: 0, tSwitch: 0, uSwitch: 0, iSwitch: 0 }
       return { ...st, ...fields(st, p, slots) }
     },
     step(s, dt, p) {
