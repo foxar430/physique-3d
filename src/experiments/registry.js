@@ -13,6 +13,7 @@ export const EXPERIMENTS = [
   { id: 'rlc-force', level: '4e', title: 'RLC forcé : résonance d’intensité', chapter: 'Systèmes électriques', icon: '📈', load: lazy(() => import('./rlc-force/index.jsx')) },
   { id: 'ressort-force', level: '4e', title: 'Pendule élastique : résonance', chapter: 'Système mécanique', icon: '🎚', load: lazy(() => import('./ressort-force/index.jsx')) },
   { id: 'ondes', level: '4e', title: 'Ondes progressives : cuve à ondes', chapter: 'Ondes', icon: '🌊', load: lazy(() => import('./ondes/index.jsx')) },
+  { id: 'corde', level: '4e', title: 'Onde progressive le long d’une corde', chapter: 'Ondes', icon: '〰', load: lazy(() => import('./corde/index.jsx')) },
   { id: 'diffraction', level: '4e', title: 'Diffraction et dispersion de la lumière', chapter: 'Ondes', icon: '🔦', load: lazy(() => import('./diffraction/index.jsx')) },
   { id: 'spectre', level: '4e', title: 'Spectre atomique de l’hydrogène', chapter: 'Physique atomique', icon: '🌈', load: lazy(() => import('./spectre/index.jsx')) },
   { id: 'radioactivite', level: '4e', title: 'Radioactivité et décroissance', chapter: 'Physique nucléaire', icon: '☢', load: lazy(() => import('./radioactivite/index.jsx')) },

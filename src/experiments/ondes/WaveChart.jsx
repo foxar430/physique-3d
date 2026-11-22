@@ -40,7 +40,7 @@ export default function WaveChart({ sim, rMax = 20, kind = 'space' }) {
       ctx.strokeStyle = grid
       ctx.fillStyle = fg
       ctx.lineWidth = 1
-      for (let c = 0; c <= rMax; c += 2) {
+      for (let c = 0; c <= rMax; c += rMax > 40 ? 10 : 2) {
         ctx.beginPath(); ctx.moveTo(X(c), T); ctx.lineTo(X(c), Hd - B); ctx.stroke()
         ctx.textAlign = 'center'; ctx.textBaseline = 'top'
         ctx.fillText(c, X(c), Hd - B + 6)
