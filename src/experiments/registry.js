@@ -30,9 +30,14 @@ export const EXPERIMENTS = [
   { id: 'lentilles', level: '3e', title: 'Lentilles minces : banc d’optique, loupe', chapter: 'Optique', icon: '🔍', load: lazy(() => import('./lentilles/index.jsx')) },
   { id: 'aop', level: '3e', title: 'Amplificateur opérationnel (Sc. Tech.)', chapter: 'Électronique', icon: '🔺', load: lazy(() => import('./aop/index.jsx')) },
   // 2e année
-  { id: 'archimede', level: '2e', title: 'Poussée d’Archimède', chapter: 'Fluides', icon: '⚓' },
-  { id: 'refraction', level: '2e', title: 'Réfraction et réflexion totale', chapter: 'Optique', icon: '💎' },
-  { id: 'levier', level: '2e', title: 'Moment d’une force, levier', chapter: 'Équilibre', icon: '⚖' },
+  { id: 'dipoles', level: '2e', title: 'Dipôles : caractéristiques, loi de Pouillet', chapter: 'Électricité', icon: '🔌', load: lazy(() => import('./dipoles/index.jsx')) },
+  { id: 'alternatif', level: '2e', title: 'Courant alternatif : l’oscilloscope', chapter: 'Électricité', icon: '∿', load: lazy(() => import('./alternatif/index.jsx')) },
+  { id: 'equilibre', level: '2e', title: 'Équilibre : la table à forces', chapter: 'Mécanique', icon: '✳', load: lazy(() => import('./equilibre/index.jsx')) },
+  { id: 'levier', level: '2e', title: 'Moment d’une force, levier', chapter: 'Mécanique', icon: '⚖', load: lazy(() => import('./levier/index.jsx')) },
+  { id: 'mouvement', level: '2e', title: 'Mouvements : table à coussin d’air', chapter: 'Mécanique', icon: '🏒', load: lazy(() => import('./mouvement/index.jsx')) },
+  { id: 'archimede', level: '2e', title: 'Pression, Archimède, Torricelli', chapter: 'Fluides', icon: '⚓', load: lazy(() => import('./archimede/index.jsx')) },
+  { id: 'energie', level: '2e', title: 'Énergie mécanique et chaleur', chapter: 'Énergie', icon: '🔋', load: lazy(() => import('./energie/index.jsx')) },
+  { id: 'refraction', level: '2e', title: 'Réflexion, réfraction, réflexion totale', chapter: 'Optique', icon: '💎', load: lazy(() => import('./refraction/index.jsx')) },
 ]
 
 export const LEVELS = [

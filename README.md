@@ -42,6 +42,17 @@ Puis ouvrir http://localhost:5180.
 - **Lentilles minces** (`#/lentilles`) : banc d'optique, tracé des rayons, image sur l'écran (nette ou floue), loupe.
 - **Amplificateur opérationnel** (`#/aop`, Sc. Tech.) : inverseur, non inverseur, suiveur, sommateur, comparateur, saturation, oscilloscope.
 
+## Expériences de 2e année
+
+- **Dipôles** (`#/dipoles`) : caractéristiques U(I) d'un résistor, d'une lampe, d'une diode, d'un moteur et d'une pile, relevé de points, puissance, loi de Pouillet et point de fonctionnement.
+- **Courant alternatif** (`#/alternatif`) : GBF et oscilloscope réglable (sensibilité, balayage), signaux sinusoïdal, triangulaire, carré, continu, valeur efficace.
+- **Table à forces** (`#/equilibre`) : équilibre d'un anneau soumis à trois forces, polygone des forces.
+- **Levier** (`#/levier`) : moments des forces, théorème des moments, dynamomètre.
+- **Mouvements** (`#/mouvement`) : table à coussin d'air, MRU, MRUV, circulaire uniforme, enregistrement toutes les 40 ms.
+- **Fluides** (`#/archimede`) : poussée d'Archimède au dynamomètre, pression dans un liquide (capsule et manomètre), expérience de Torricelli.
+- **Énergie** (`#/energie`) : pendule simple et chute avec rebonds, Ec, Ep, Em et chaleur Q.
+- **Optique** (`#/refraction`) : disque gradué, miroir plan, réfraction air → plexiglas, réflexion totale.
+
 Les trois circuits électriques et le RC partagent la même scène 3D, `src/components/three/Circuit.jsx`.
 
 ## Documentation
