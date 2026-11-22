@@ -26,7 +26,7 @@ export default function RLCFreeExperiment() {
   const period = T0(params)
   const rc = Rc(params)
   const Rt = Rtot(params)
-  const view = sceneSlots(slotsOf(params), NAMES)
+  const cv = sceneSlots(slotsOf(params), NAMES)
 
   const toggle = useCallback(() => {
     const s = sim.stateRef.current
@@ -59,8 +59,8 @@ export default function RLCFreeExperiment() {
           source={SOURCE}
           amps={(s) => s.i}
           onToggle={toggle}
-          top={view.top}
-          right={view.right}
+          top={cv.top}
+          right={cv.right}
           meter={METER}
           current={(s, p) => s.i / Imax(p)}
           charge={(s, p) => derived(s, p).uC / p.E}

@@ -30,7 +30,7 @@ export default function FilterExperiment() {
   const nc = Nc(params)
   const tr = transfer(params)
   const bas = params.type === 'bas'
-  const view = sceneSlots(slotsOf(params), NAMES)
+  const cv = sceneSlots(slotsOf(params), NAMES)
   const setN = (N) => {
     setParams((p) => ({ ...p, N }))
     sim.setSpeed(nearestSpeed(N))
@@ -59,8 +59,8 @@ export default function FilterExperiment() {
           source={SOURCE}
           amps={(s) => s.i}
           hasSwitch={false}
-          top={view.top}
-          right={view.right}
+          top={cv.top}
+          right={cv.right}
           meter={METER}
           current={(s, p) => s.i / (p.Ue / p.R)}
           charge={(s, p) => (s.els?.C?.v ?? 0) / p.Ue}

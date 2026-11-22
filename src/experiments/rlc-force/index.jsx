@@ -29,7 +29,7 @@ export default function RLCForcedExperiment() {
   const st = steady(params)
   const st0 = steady(params, n0)
   const q = Q(params)
-  const view = sceneSlots(slotsOf(params), NAMES)
+  const cv = sceneSlots(slotsOf(params), NAMES)
   const read = useSampled(sim, (s) => ({ i: s.i }), 4)
   const win = Math.max(3 / params.N, 0.005)
   const phiDeg = (st.phi * 180) / Math.PI
@@ -51,8 +51,8 @@ export default function RLCForcedExperiment() {
           source={SOURCE}
           amps={(s) => s.i}
           hasSwitch={false}
-          top={view.top}
-          right={view.right}
+          top={cv.top}
+          right={cv.right}
           meter={METER}
           current={(s, p) => s.i / (p.Um / Math.max(Rtot(p), 1))}
           charge={(s, p) => s.uC / Math.max(steady(p, N0(p)).Im / (2 * Math.PI * N0(p) * p.C * 1e-6), p.Um)}

@@ -27,7 +27,7 @@ export default function RLExperiment() {
   const set = (k) => (v) => setParams((p) => ({ ...p, [k]: v }))
   const T = tau(params)
   const tauOk = isFinite(T)
-  const view = sceneSlots(slotsOf(params), NAMES)
+  const cv = sceneSlots(slotsOf(params), NAMES)
 
   const toggle = useCallback(() => {
     const s = sim.stateRef.current
@@ -53,8 +53,8 @@ export default function RLExperiment() {
           source={SOURCE}
           amps={(s) => s.i}
           onToggle={toggle}
-          top={view.top}
-          right={view.right}
+          top={cv.top}
+          right={cv.right}
           meter={METER}
           current={(s, p) => s.i / (I0(p) || p.E / (p.R + p.r))}
         />

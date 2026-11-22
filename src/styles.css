@@ -182,3 +182,4 @@ button.link { border: 0; background: none; padding: 4px 0; color: var(--text-2);
 .extras { list-style: none; padding: 0; margin: 8px 0; font-size: 13px; }
 .extras li { display: flex; gap: 6px; align-items: center; padding: 3px 0; }
 .extras li button.link { margin-left: auto; text-decoration: none; padding: 0 6px; }
+.scene-error { position: absolute; inset: 0; display: grid; place-content: center; gap: 10px; text-align: center; padding: 20px; color: var(--text-2); }

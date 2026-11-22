@@ -1,8 +1,32 @@
-import { Suspense, useRef, useState } from 'react'
+import { Component, Suspense, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Environment, Lightformer } from '@react-three/drei'
 
 const SPEEDS = [0.1, 0.25, 0.5, 1, 2, 5]
+
+/** Si la scène 3D plante, on affiche un message au lieu de vider toute la page. */
+class SceneBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+  componentDidCatch(error) {
+    console.error('Scène 3D :', error)
+  }
+  render() {
+    if (this.state.error)
+      return (
+        <div className="scene-error">
+          La scène 3D n’a pas pu s’afficher. Les réglages et les courbes restent utilisables.
+          <button onClick={() => this.setState({ error: null })}>Réessayer</button>
+        </div>
+      )
+    return this.props.children
+  }
+}
 /** vitesses pour les phénomènes de quelques millisecondes (RL, RLC) */
 export const FAST_SPEEDS = [0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
 const speedLabel = (s) => (s >= 1 ? '×' + s : s >= 0.1 ? '×' + s : '÷' + Math.round(1 / s))
@@ -41,6 +65,7 @@ export default function ExperimentLayout({ meta, sim, scene, camera, controls, r
 
       <div className="exp-grid" ref={stageRef}>
         <section className="stage" aria-label="Scène 3D">
+          <SceneBoundary>
           <Canvas key={String(camera?.position)} camera={{ position: camera?.position ?? [0, 2, 6], fov: camera?.fov ?? 45 }} shadows dpr={[1, 2]}>
             <Suspense fallback={null}>
               <color attach="background" args={['#14171c']} />
@@ -67,6 +92,7 @@ export default function ExperimentLayout({ meta, sim, scene, camera, controls, r
               <OrbitControls makeDefault target={camera?.target ?? [0, 0, 0]} enablePan={false} minDistance={2} maxDistance={20} />
             </Suspense>
           </Canvas>
+          </SceneBoundary>
           <div className="hud">{readouts}</div>
           {toggles.length > 0 && (
             <div className="view-toggles">

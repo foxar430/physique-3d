@@ -26,7 +26,7 @@ export default function RCExperiment() {
   const sim = useSimulation(rcModel, params)
   const set = (k) => (v) => setParams((p) => ({ ...p, [k]: v }))
   const T = tau(params)
-  const view = sceneSlots(slotsOf(params), NAMES)
+  const cv = sceneSlots(slotsOf(params), NAMES)
   const tauOk = isFinite(T)
 
   const toggle = useCallback(() => {
@@ -67,8 +67,8 @@ export default function RCExperiment() {
           source={SOURCE}
           amps={(s, p) => derived(s, p).i}
           onToggle={toggle}
-          top={view.top}
-          right={view.right}
+          top={cv.top}
+          right={cv.right}
           meter={METER}
           current={(s, p) => s.iLoop / (p.E / (p.R * 1e3))}
           charge={(s, p) => s.uC / p.E}
